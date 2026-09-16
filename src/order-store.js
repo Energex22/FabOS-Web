@@ -15,7 +15,7 @@ export function writeOrders(orders){
 
 export function createOrderNumber(){
  const stamp=new Date()
- const date=stamp.toISOString().slice(0,10).replaceAll('-','')
+ const date=`${stamp.getFullYear()}${String(stamp.getMonth()+1).padStart(2,'0')}${String(stamp.getDate()).padStart(2,'0')}`
  const random=Math.floor(1000+Math.random()*9000)
  return `FBO-${date}-${random}`
 }
