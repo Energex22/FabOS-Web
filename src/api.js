@@ -34,6 +34,7 @@ export const customerApi={
  quotes:()=>request('/api/v1/customer/quotes'),
  quote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}`),
  createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
+ createPublicQuote:(payload)=>request('/api/v1/quote-requests',{method:'POST',body:JSON.stringify(payload)}),
  orders:()=>request('/api/v1/customer/orders'),
  order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)})
