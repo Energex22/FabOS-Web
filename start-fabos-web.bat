@@ -36,12 +36,32 @@ if not exist "node_modules\vite\bin\vite.js" (
 
 echo Starting the customer site...
 echo.
-echo The site will open automatically at http://localhost:5173/
-echo Keep this window open while using the site.
-echo Close this window to stop the site.
+echo Waiting for the local server before opening the browser...
 echo.
 
-start "FabOS Web Browser" http://localhost:5173/
-npm run dev
+start "FabOS Web Server" /b cmd /c "npm run dev"
 
+set "READY="
+for /l %%N in (1,1,30) do (
+  if not defined READY (
+    powershell -NoProfile -Command "$r=try { Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:5173/' -TimeoutSec 1 } catch { $null }; if($r -and $r.StatusCode -eq 200){ exit 0 } else { exit 1 }" >nul 2>nul
+    if not errorlevel 1 set "READY=1"
+    if not defined READY timeout /t 1 /nobreak >nul
+  )
+)
+
+if defined READY (
+  echo Site is ready. Opening http://localhost:5173/
+  start "FabOS Web Browser" http://localhost:5173/
+) else (
+  echo.
+  echo The server did not respond within 30 seconds.
+  echo Open http://localhost:5173/ manually if the server is still starting.
+)
+
+echo.
+echo The server is running in the background.
+echo Close this window to finish the launcher; the server may remain running.
+echo.
+pause
 endlocal
