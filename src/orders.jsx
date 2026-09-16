@@ -1,0 +1,14 @@
+import React,{useState} from 'react'
+import {ArrowLeft,ArrowRight,Box,ChevronDown,Package,ShoppingBag} from 'lucide-react'
+import {createRoot} from 'react-dom/client'
+import {readOrders} from './order-store.js'
+import './styles.css'
+import '../orders.css'
+
+function money(value){return `$${Number(value).toFixed(2)}`}
+function App(){
+ const [orders]=useState(readOrders)
+ const [open,setOpen]=useState(null)
+ return <div className="orders-shell"><header className="orders-nav"><a className="orders-brand" href="/"><Box size={18}/> FAB<span>OS</span></a><nav><a href="/shop.html">Shop</a><a href="/custom-work.html">Custom Work</a></nav></header><main className="orders-main"><a className="orders-back" href="/"><ArrowLeft size={16}/> Back to home</a><section className="orders-hero"><p className="eyebrow">ORDER HISTORY</p><h1>Your orders.</h1><p>Review orders placed from this browser. Account-based order history will be connected when customer accounts are enabled.</p></section>{orders.length?<section className="orders-list">{orders.map(order=>{const expanded=open===order.orderNumber;return <article className="order-card" key={order.orderNumber}><button className="order-head" onClick={()=>setOpen(expanded?null:order.orderNumber)} aria-expanded={expanded}><div><span className="order-number">{order.orderNumber}</span><strong>{new Date(order.createdAt).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})}</strong></div><div className="order-head-right"><span className="order-status">{order.status}</span><strong>{money(order.total)}</strong><ChevronDown className={expanded?'rotated':''} size={19}/></div></button>{expanded&&<div className="order-details"><div className="order-items">{order.items.map(item=><div className="order-item" key={item.id}><div className="order-item-icon"><Package size={18}/></div><div><strong>{item.name}</strong><small>Qty {item.quantity} · {money(item.price)} each</small></div><strong>{money(item.price*item.quantity)}</strong></div>)}</div><div className="order-detail-grid"><div><span>SHIPPING</span><strong>{order.shipping?'Standard shipping':'Free shipping'}</strong></div><div><span>DELIVERY ADDRESS</span><strong>{order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}</strong></div>{order.notes&&<div><span>ORDER NOTES</span><strong>{order.notes}</strong></div>}</div></div>}</article>})}</section>:<section className="orders-empty"><div><ShoppingBag size={32}/></div><h2>No orders yet.</h2><p>When you place an order, it will appear here on this browser.</p><a className="button primary" href="/shop.html">Browse the collection <ArrowRight size={17}/></a></section>}<p className="orders-prototype-note">This page is a local customer-flow foundation. It does not replace the future account and order service.</p></main></div>
+}
+createRoot(document.getElementById('orders-root')).render(<App/>)
