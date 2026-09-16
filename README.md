@@ -24,7 +24,8 @@ Node.js LTS is required. If Node.js is not installed, the starter explains what 
 
 - `src/catalog.js` — shared products, categories, materials, colors, and product lookup
 - `src/cart.js` — shared multi-item cart stored under `fabos.cart` during the prototype phase
-- `src/customer-contracts.js` — versioned payload shapes for future customer quote/order API calls
+- `src/customer-contracts.js` — versioned payload shapes for customer quote/order API calls
+- `src/customer-store.js` — temporary browser-side customer identity/profile foundation
 - `src/quote-store.js` — temporary browser-side custom request storage
 - `src/order-store.js` — temporary browser-side order storage and customer-facing order status definitions
 
@@ -36,9 +37,11 @@ The current material adjustments are illustrative. Production pricing, availabil
 
 ## API boundary
 
-`src/api.js` is the single customer API adapter boundary. The frontend is responsible for presentation, customer input, and local interaction. Production truth belongs in the backend, including customers, quotes, orders, payment state, pricing snapshots, production status, files, and fulfillment.
+`src/api.js` is the single customer API adapter boundary. It now includes the planned public catalog, authentication, customer profile, quote, and order operations. Authentication tokens are kept in browser storage only as a temporary client mechanism; passwords, sessions, customer ownership, pricing truth, payment state, and permissions remain backend responsibilities.
 
-The adapter currently defines future quote/order calls but does not pretend those endpoints are live. The shared customer contracts are versioned separately so the frontend payload shape can be aligned with the backend before live submission is enabled.
+`docs/FABOS_API_CONTRACT.md` documents the proposed HTTP contract. The matching backend-side boundary is documented in the FabOS repository at `docs/CUSTOMER_API_CONTRACT.md`.
+
+The adapter does not pretend the routes are live. Production truth belongs in FabOS, including customers, quotes, orders, payment state, pricing snapshots, production status, files, and fulfillment.
 
 ## Prototype limitations
 
@@ -47,7 +50,13 @@ The current customer flow intentionally works without a live backend connection:
 - Orders and custom requests are stored only in the current browser/device.
 - No payment is processed.
 - Uploaded custom files are currently represented by file metadata; binary upload/storage will be connected when the backend file service is ready.
-- Customer accounts and server-side order history are not enabled yet.
+- The account/profile foundation is local only; it is not server authentication.
+
+## Backend alignment
+
+The backend already has dedicated account/authentication, customer, quote, order, fulfillment, product, and customer-update services. The customer API should call those existing service boundaries rather than creating a second business-logic implementation in the web project.
+
+The backend's customer ownership methods must remain authoritative for customer quote/order access. Customer-safe order statuses should be translated at the API boundary so internal workflow states are not exposed directly to customers.
 
 ## Multi-page build
 
