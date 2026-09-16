@@ -1,5 +1,14 @@
 const ORDERS_KEY='fabos.orders'
 
+export const ORDER_STATUS_STEPS=[
+ {key:'received',label:'Order received'},
+ {key:'payment',label:'Payment'},
+ {key:'preparing',label:'Preparing your order'},
+ {key:'quality',label:'Final quality check'},
+ {key:'shipping',label:'Shipping'},
+ {key:'delivered',label:'Delivered'}
+]
+
 function safeParse(value,fallback){
  try{return JSON.parse(value)||fallback}catch{return fallback}
 }
@@ -28,4 +37,15 @@ export function saveOrder(order){
 
 export function findOrder(orderNumber){
  return readOrders().find(order=>order.orderNumber===orderNumber)||null
+}
+
+export function getOrderStatusIndex(status){
+ const normalized=String(status||'').trim().toLowerCase()
+ const aliases={'order received':'received','received':'received','payment':'payment','preparing':'preparing','preparing your order':'preparing','quality':'quality','final quality check':'quality','shipping':'shipping','delivered':'delivered'}
+ const key=aliases[normalized]||'received'
+ return Math.max(0,ORDER_STATUS_STEPS.findIndex(step=>step.key===key))
+}
+
+export function getOrderStatusLabel(status){
+ return ORDER_STATUS_STEPS[getOrderStatusIndex(status)]?.label||ORDER_STATUS_STEPS[0].label
 }
