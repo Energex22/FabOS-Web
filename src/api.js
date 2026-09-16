@@ -19,6 +19,11 @@ export async function getPublicCatalog(params={}){
  return data.products||[]
 }
 
+export async function getPublicProduct(productId){
+ const data=await request(`/api/v1/catalog/${encodeURIComponent(productId)}`)
+ return data
+}
+
 export async function getCatalogCategories(){
  const data=await request('/api/v1/catalog/categories')
  return data.categories||[]
@@ -27,6 +32,7 @@ export async function getCatalogCategories(){
 export const customerApi={
  health:()=>request('/api/v1/health'),
  catalog:getPublicCatalog,
+ product:getPublicProduct,
  categories:getCatalogCategories,
  createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)})
