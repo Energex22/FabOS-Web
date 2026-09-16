@@ -37,6 +37,7 @@ export const customerApi={
  createPublicQuote:(payload)=>request('/api/v1/quote-requests',{method:'POST',body:JSON.stringify(payload)}),
  orders:()=>request('/api/v1/customer/orders'),
  order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
- createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)})
+ createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
+ createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'})
 }
 export {API_BASE,AUTH_TOKEN_KEY}
