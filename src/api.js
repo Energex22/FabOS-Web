@@ -1,7 +1,14 @@
 const API_BASE=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL||'http://127.0.0.1:8000'
+const AUTH_TOKEN_KEY='fabos.auth.token'
+
+function authHeaders(){
+ if(typeof localStorage==='undefined')return {}
+ const token=localStorage.getItem(AUTH_TOKEN_KEY)
+ return token?{Authorization:`Bearer ${token}`}:{ }
+}
 
 async function request(path,options={}){
- const response=await fetch(`${API_BASE}${path}`,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options})
+ const response=await fetch(`${API_BASE}${path}`,{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
  let data=null
  try{data=await response.json()}catch(_){data=null}
  if(!response.ok)throw new Error((data&&data.error)||`API request failed: ${response.status}`)
@@ -20,8 +27,7 @@ export async function getPublicCatalog(params={}){
 }
 
 export async function getPublicProduct(productId){
- const data=await request(`/api/v1/catalog/${encodeURIComponent(productId)}`)
- return data
+ return request(`/api/v1/catalog/${encodeURIComponent(productId)}`)
 }
 
 export async function getCatalogCategories(){
@@ -29,13 +35,33 @@ export async function getCatalogCategories(){
  return data.categories||[]
 }
 
+export async function loginCustomer(identifier,password){
+ const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})})
+ if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token)
+ return data
+}
+
+export function logoutCustomer(){
+ const token=typeof localStorage!=='undefined'?localStorage.getItem(AUTH_TOKEN_KEY):null
+ if(typeof localStorage!=='undefined')localStorage.removeItem(AUTH_TOKEN_KEY)
+ return token?request('/api/v1/auth/logout',{method:'POST'}).catch(()=>null):Promise.resolve(null)
+}
+
 export const customerApi={
  health:()=>request('/api/v1/health'),
  catalog:getPublicCatalog,
  product:getPublicProduct,
  categories:getCatalogCategories,
+ login:loginCustomer,
+ logout:logoutCustomer,
+ me:()=>request('/api/v1/customer/me'),
+ updateProfile:(payload)=>request('/api/v1/customer/me',{method:'PATCH',body:JSON.stringify(payload)}),
+ quotes:(params={})=>request(`/api/v1/customer/quotes${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
+ quote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}`),
  createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
+ orders:(params={})=>request(`/api/v1/customer/orders${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
+ order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)})
 }
 
-export {API_BASE}
+export {API_BASE,AUTH_TOKEN_KEY}
