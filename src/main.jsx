@@ -1,17 +1,10 @@
 import React,{useMemo,useState} from 'react'
-import {ArrowLeft,ArrowRight,Box,Check,Menu,Minus,Plus,Search,ShoppingCart,Sparkles,X} from 'lucide-react'
+import {ArrowRight,Box,Check,Menu,Minus,Plus,Search,ShoppingCart,Sparkles,X} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
 import {readCart,writeCart,cartCount,cartSubtotal,addCartItem,changeCartItem} from './cart.js'
+import {products,categories} from './catalog.js'
 import './styles.css'
 
-const products=[
-{id:'dock',name:'Desk Cable Dock',price:18,tag:'Best Seller',category:'Desk & Office',description:'A clean, compact home for the cables that never stay put.',details:'A compact desktop organizer designed to keep charging and connection cables separated, accessible, and off the floor.',uses:['Charging cables','USB and power leads','Desk setups']},
-{id:'stand',name:'Controller Stand',price:24,tag:'Popular',category:'Gaming',description:'Weighted, low-profile support built for everyday use.',details:'A stable display and storage stand for controllers between sessions.',uses:['Game controllers','Desk or shelf display','Gaming setups']},
-{id:'hook',name:'Headphone Hook',price:16,tag:'New',category:'Desk & Office',description:'A simple under-desk mount that keeps your setup clear.',details:'An under-desk hanger that gives headphones a dedicated home.',uses:['Headphones','Headsets','Under-desk storage']},
-{id:'organizer',name:'Modular Home Organizer',price:32,tag:'Popular',category:'Home',description:'Stackable storage designed around the things you actually own.',details:'A modular storage piece intended to grow with your space.',uses:['Small household items','Shelves and counters','Modular storage']},
-{id:'mount',name:'Utility Mount',price:21,tag:'Made to Order',category:'Home',description:'A compact mounting solution for awkward spaces.',details:'A practical mounting platform for small equipment and accessories.',uses:['Small equipment','Accessories','Custom mounting points']},
-{id:'gaming',name:'Gaming Desk Dock',price:29,tag:'New',category:'Gaming',description:'Keep controllers, cables, and accessories within reach.',details:'A dedicated landing zone for gaming accessories.',uses:['Controllers','Cables','Gaming accessories']}]
-const categories=['All','Desk & Office','Gaming','Home']
 const faqs=[['How long does an order take?','Most standard projects are produced in a few business days. Custom projects can vary based on complexity.'],['Can you print a design I already have?','Absolutely. Upload your model during the custom project process and we can review it before production.'],['What materials and colors are available?','We offer a growing range of common 3D-printing materials, finishes, and colors depending on the project.']]
 
 function App(){
