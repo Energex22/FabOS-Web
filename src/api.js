@@ -11,7 +11,7 @@ async function request(path,options={}){
  const response=await fetch(`${API_BASE}${path}`,{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
  let data=null
  try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error((data&&data.error)||`API request failed: ${response.status}`)
+ if(!response.ok)throw new Error((data&&data.detail)||(data&&data.error)||`API request failed: ${response.status}`)
  return data
 }
 
@@ -30,10 +30,12 @@ export const customerApi={
  register:registerCustomer,
  logout:logoutCustomer,
  me:()=>request('/api/v1/customer/me'),
- quotes:(params={})=>request(`/api/v1/quotes${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
- quote:(quoteId)=>request(`/api/v1/quotes/${encodeURIComponent(quoteId)}`),
- orders:(params={})=>request(`/api/v1/orders${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
- order:(orderId)=>request(`/api/v1/orders/${encodeURIComponent(orderId)}`),
- checkoutEstimate:(items,shippingMode)=>request('/api/v1/checkout/estimate',{method:'POST',body:JSON.stringify({items,shipping_mode:shippingMode})})
+ updateProfile:(payload)=>request('/api/v1/customer/me',{method:'PATCH',body:JSON.stringify(payload)}),
+ quotes:(params={})=>request(`/api/v1/customer/quotes${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
+ quote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}`),
+ createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
+ orders:(params={})=>request(`/api/v1/customer/orders${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
+ order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
+ createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)})
 }
 export {API_BASE,AUTH_TOKEN_KEY}
