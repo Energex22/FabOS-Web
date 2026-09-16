@@ -3,6 +3,7 @@ import {ArrowLeft,ArrowRight,Box,Check,Clock,Package,Truck} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
 import {customerApi,AUTH_TOKEN_KEY} from './api.js'
 import './styles.css'
+import './order-payment.css'
 
 const STATUS_STEPS=['Order received','Preparing your order','Final quality check','Shipping','Delivered']
 function money(value){return `$${Number(value||0).toFixed(2)}`}
