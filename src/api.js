@@ -31,11 +31,12 @@ export const customerApi={
  logout:logoutCustomer,
  me:()=>request('/api/v1/customer/me'),
  updateProfile:(payload)=>request('/api/v1/customer/me',{method:'PATCH',body:JSON.stringify(payload)}),
- quotes:(params={})=>request(`/api/v1/customer/quotes${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
- quote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}`),
- createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
- orders:(params={})=>request(`/api/v1/customer/orders${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
- order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
- createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)})
+ quotes:(params={})=>request(`/api/v1/quotes${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
+ quote:(quoteId)=>request(`/api/v1/quotes/${encodeURIComponent(quoteId)}`),
+ createQuote:(payload)=>request('/api/v1/quotes',{method:'POST',body:JSON.stringify(payload)}),
+ orders:(params={})=>request(`/api/v1/orders${params.status?`?status=${encodeURIComponent(params.status)}`:''}`),
+ order:(orderId)=>request(`/api/v1/orders/${encodeURIComponent(orderId)}`),
+ createOrder:(payload)=>request('/api/v1/checkout/order',{method:'POST',body:JSON.stringify(payload)}),
+ checkoutEstimate:(items,shippingMode)=>request('/api/v1/checkout/estimate',{method:'POST',body:JSON.stringify({items,shipping_mode:shippingMode})})
 }
 export {API_BASE,AUTH_TOKEN_KEY}
