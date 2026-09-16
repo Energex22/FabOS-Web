@@ -9,7 +9,16 @@ Customer-facing frontend for the 3D-printing business. The customer experience i
 - `/product.html?id=dock` — configurable product experience
 - `/custom-work.html` — four-step custom project request flow
 - `/checkout.html` — cart review, customer/shipping details, and order capture foundation
-- `/orders.html` — customer order history foundation
+- `/orders.html` — customer order history
+- `/order.html?number=FBO-...` — individual order details and customer-facing progress timeline
+
+## One-click Windows starter
+
+For Windows users, double-click `start-fabos-web.bat` to start the site. On the first run it installs the required npm dependencies automatically, starts the local development server, waits for it to respond, and opens the customer site in the default browser.
+
+A silent launcher is also included as `start-fabos-web-hidden.vbs` for users who prefer not to see the starter console window.
+
+Node.js LTS is required. If Node.js is not installed, the starter explains what is needed instead of failing silently.
 
 ## Shared customer data
 
@@ -17,7 +26,7 @@ Customer-facing frontend for the 3D-printing business. The customer experience i
 - `src/cart.js` — shared multi-item cart stored under `fabos.cart` during the prototype phase
 - `src/customer-contracts.js` — versioned payload shapes for future customer quote/order API calls
 - `src/quote-store.js` — temporary browser-side custom request storage
-- `src/order-store.js` — temporary browser-side order storage
+- `src/order-store.js` — temporary browser-side order storage and customer-facing order status definitions
 
 Configured product variants carry an explicit `productId`, `variantId`, and `configuration` object so the eventual backend can distinguish choices such as material and color without parsing display text.
 
@@ -42,7 +51,7 @@ The current customer flow intentionally works without a live backend connection:
 
 ## Multi-page build
 
-Vite builds the main, shop, product, custom-work, checkout, and orders entry points together. Each major customer workflow can therefore evolve independently while remaining one frontend project.
+Vite builds the main, shop, product, custom-work, checkout, orders, and order-detail entry points together. Each major customer workflow can therefore evolve independently while remaining one frontend project.
 
 ## Development
 
