@@ -20,7 +20,13 @@ The current prototype supports material, color, quantity, and calculated pricing
 
 ## API boundary
 
-The frontend should remain responsible for presentation, customer input, and local interaction. Production truth—customers, quotes, orders, payment status, pricing snapshots, production status, files, and fulfillment—belongs in the FabOS backend/API.
+`src/api.js` is the single customer API adapter boundary. The frontend should remain responsible for presentation, customer input, and local interaction. Production truth—customers, quotes, orders, payment status, pricing snapshots, production status, files, and fulfillment—belongs in the FabOS backend/API.
+
+Expected future customer endpoints are represented as adapters only; the current frontend does not pretend that those backend endpoints already exist.
+
+## Multi-page build
+
+Vite is configured to build the main, shop, product, custom-work, and checkout entry points together. This keeps the customer experience as one frontend project while allowing each major workflow to evolve independently.
 
 ## Development
 
