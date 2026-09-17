@@ -2,11 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
-title FabOS Web
+title Fabvex Web
 
 echo.
 echo ========================================
-echo           FABOS WEB STARTER
+echo             FABVEX WEB STARTER
 echo ========================================
 echo.
 
@@ -39,7 +39,7 @@ echo.
 echo Waiting for the local server before opening the browser...
 echo.
 
-start "FabOS Web Server" /b cmd /c "npm run dev"
+start "Fabvex Web Server" /b cmd /c "npm run dev"
 
 set "READY="
 for /l %%N in (1,1,30) do (
@@ -52,7 +52,19 @@ for /l %%N in (1,1,30) do (
 
 if defined READY (
   echo Site is ready. Opening http://localhost:5173/
-  start "FabOS Web Browser" http://localhost:5173/
+  echo.
+  echo Checking the FabOS customer API at http://localhost:8000/api/v1/health ...
+  powershell -NoProfile -Command "$r=try { Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:8000/api/v1/health' -TimeoutSec 2 } catch { $null }; if($r -and $r.StatusCode -eq 200){ exit 0 } else { exit 1 }" >nul 2>nul
+  if errorlevel 1 (
+    echo WARNING: The FabOS customer API is not responding.
+    echo The Shop page cannot load published products until the FabOS backend is running.
+    echo Start FabOS on port 8000, then refresh the Fabvex Shop page.
+    echo.
+  ) else (
+    echo FabOS customer API is online.
+    echo.
+  )
+  start "Fabvex Web Browser" http://localhost:5173/
 ) else (
   echo.
   echo The server did not respond within 30 seconds.
