@@ -2,11 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
-title Customer Website + FabOS API
+title Fabvex Development Stack
 
 echo.
 echo ========================================
-echo       CUSTOMER WEBSITE + FABOS API
+echo        FABVEX DEVELOPMENT STACK
 echo ========================================
 echo.
 
@@ -22,6 +22,7 @@ if not exist "node_modules\vite\bin\vite.js" (
   echo Installing website dependencies...
   call npm install
   if errorlevel 1 (
+    echo.
     echo Dependency installation failed.
     pause
     exit /b 1
@@ -29,7 +30,6 @@ if not exist "node_modules\vite\bin\vite.js" (
 )
 
 set "FABOS_DIR=%FABOS_DIR%"
-if not defined FABOS_DIR if exist "%~dp0..\FabOS\fabos_api\server.py" set "FABOS_DIR=%~dp0..\FabOS"
 if not defined FABOS_DIR if exist "%~dp0..\FabOS\fabos_api\server.py" set "FABOS_DIR=%~dp0..\FabOS"
 
 if defined FABOS_DIR (
@@ -42,11 +42,11 @@ if defined FABOS_DIR (
   echo Set FABOS_DIR to your FabOS folder before running this launcher.
   echo Example: set FABOS_DIR=C:\FabOS
   echo.
-  echo The website will still start with its local preview catalog.
+  echo The website will still start, but live FabOS catalog data will be unavailable.
 )
 
 echo Starting customer website...
-start "Customer Website" /b cmd /c "npm run dev"
+start "Fabvex Web Server" /b cmd /c "npm run dev"
 
 echo.
 echo Waiting for the website...
@@ -56,9 +56,10 @@ for /l %%N in (1,1,30) do (
   timeout /t 1 /nobreak >nul
 )
 
+echo.
 echo The website did not respond within 30 seconds.
 echo Open http://localhost:5173/ manually if Vite is still starting.
-goto DONE
+goto SHUTDOWN_PROMPT
 
 :READY
 echo.
@@ -67,10 +68,43 @@ echo Website ready: http://localhost:5173/
 echo API health:    http://127.0.0.1:8000/api/v1/health
 echo ========================================
 echo.
-start "Customer Website Browser" http://localhost:5173/
+start "Fabvex Browser" http://localhost:5173/
 
-:DONE
+echo The Fabvex website and local API are running.
+echo Keep this window open while developing.
 echo.
-echo Press any key to close this launcher. Background servers may remain running.
-pause >nul
+
+:SHUTDOWN_PROMPT
+echo.
+echo ========================================
+echo             STOP SERVERS?
+echo ========================================
+echo.
+choice /C YN /N /M "Shut down the Fabvex website and FabOS API now? [Y/N] "
+if errorlevel 2 goto EXIT
+
+echo.
+echo Stopping Fabvex development servers...
+call :STOP_SERVER_BY_PORT 5173 "Fabvex Web Server"
+call :STOP_SERVER_BY_PORT 8000 "FabOS API"
+echo.
+echo Development servers stopped.
+
+goto EXIT
+
+:STOP_SERVER_BY_PORT
+set "PORT=%~1"
+set "LABEL=%~2"
+for /f "tokens=5" %%P in ('netstat -ano -p tcp ^| findstr /R /C:":%PORT% .*LISTENING"') do (
+  if not "%%P"=="0" (
+    echo Stopping %LABEL% process %%P on port %PORT%...
+    taskkill /PID %%P /T /F >nul 2>nul
+  )
+)
+exit /b 0
+
+:EXIT
+echo.
+echo Launcher closed. The servers were left running.
+echo.
 endlocal
