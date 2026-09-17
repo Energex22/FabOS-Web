@@ -1,4 +1,5 @@
-const API_BASE=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL||'http://127.0.0.1:8000'
+const configuredApiBase=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL
+const API_BASE=(configuredApiBase||((typeof window!=='undefined'&&window.location.hostname)?`${window.location.protocol}//${window.location.hostname}:8000`:'http://127.0.0.1:8000')).replace(/\/$/,'')
 const AUTH_TOKEN_KEY='fabos.auth.token'
 
 function authHeaders(){
@@ -8,18 +9,26 @@ function authHeaders(){
 }
 
 async function request(path,options={}){
- const response=await fetch(`${API_BASE}${path}`,{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
+ let response
+ try{
+  response=await fetch(`${API_BASE}${path}`,{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
+ }catch(err){
+  const reason=err?.message||'Network request failed'
+  throw new Error(`Unable to reach the Fabvex catalog service at ${API_BASE}. ${reason}`)
+ }
  let data=null
  try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error((data&&data.detail)||(data&&data.error)||`API request failed: ${response.status}`)
+ if(!response.ok)throw new Error((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||`API request failed: ${response.status}`)
  return data
 }
 
 async function multipartRequest(path,formData){
- const response=await fetch(`${API_BASE}${path}`,{method:'POST',headers:{...authHeaders()},body:formData})
+ let response
+ try{response=await fetch(`${API_BASE}${path}`,{method:'POST',headers:{...authHeaders()},body:formData})}
+ catch(err){throw new Error(`Unable to reach the Fabvex API at ${API_BASE}. ${err?.message||'Network request failed'}`)}
  let data=null
  try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error((data&&data.detail)||(data&&data.error)||`API request failed: ${response.status}`)
+ if(!response.ok)throw new Error((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||`API request failed: ${response.status}`)
  return data
 }
 
