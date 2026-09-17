@@ -89,7 +89,6 @@ call :STOP_SERVER_BY_PORT 5173 "Fabvex Web Server"
 call :STOP_SERVER_BY_PORT 8000 "FabOS API"
 echo.
 echo Development servers stopped.
-
 goto EXIT
 
 :STOP_SERVER_BY_PORT
@@ -105,6 +104,6 @@ exit /b 0
 
 :EXIT
 echo.
-echo Launcher closed. The servers were left running.
+echo Launcher closed.
 echo.
 endlocal
