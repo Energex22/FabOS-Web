@@ -8,27 +8,32 @@ function authHeaders(){
  return token?{Authorization:`Bearer ${token}`}:{ }
 }
 
+function publicError(message,fallback){
+ const detail=typeof message==='string'?message:''
+ if(!detail)return fallback
+ return detail.replace(/https?:\/\/[^\s/]+(?::\d+)?/gi,'the service')
+}
+
 async function request(path,options={}){
  let response
  try{
   response=await fetch(`${API_BASE}${path}`,{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
  }catch(err){
-  const reason=err?.message||'Network request failed'
-  throw new Error(`Unable to reach the Fabvex catalog service at ${API_BASE}. ${reason}`)
+  throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)
  }
  let data=null
  try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||`API request failed: ${response.status}`)
+ if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
  return data
 }
 
 async function multipartRequest(path,formData){
  let response
  try{response=await fetch(`${API_BASE}${path}`,{method:'POST',headers:{...authHeaders()},body:formData})}
- catch(err){throw new Error(`Unable to reach the Fabvex API at ${API_BASE}. ${err?.message||'Network request failed'}`)}
+ catch(err){throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)}
  let data=null
  try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||`API request failed: ${response.status}`)
+ if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
  return data
 }
 
