@@ -51,7 +51,7 @@ test('order payload preserves product identity, variant, configuration, and ship
     total: 42
   })
 
-  assert.equal(payload.channel, 'customer-web')
+  assert.equal(payload.channel, 'website')
   assert.equal(payload.items[0].productId, 'dock')
   assert.equal(payload.items[0].variantId, 'dock-black')
   assert.deepEqual(payload.items[0].configuration, { material: 'PETG', color: 'Black' })
