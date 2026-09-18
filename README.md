@@ -33,7 +33,7 @@ Configured product variants carry an explicit `productId`, `variantId`, and `con
 
 ## Pricing
 
-The current material adjustments are illustrative. Production pricing, availability, taxes, shipping rules, discounts, and pricing snapshots must ultimately come from the backend rather than being treated as customer-side truth.
+Production pricing, availability, taxes, shipping rules, and final totals come from the backend. The browser cart is display state only.
 
 ## API boundary
 
@@ -43,14 +43,18 @@ The current material adjustments are illustrative. Production pricing, availabil
 
 The adapter does not pretend the routes are live. Production truth belongs in FabOS, including customers, quotes, orders, payment state, pricing snapshots, production status, files, and fulfillment.
 
-## Prototype limitations
+## Production-connected flows
 
-The current customer flow intentionally works without a live backend connection:
+The customer frontend is now connected to the live FabOS API boundary rather than using browser-local order/quote storage as the source of truth.
 
-- Orders and custom requests are stored only in the current browser/device.
-- No payment is processed.
-- Uploaded custom files are currently represented by file metadata; binary upload/storage will be connected when the backend file service is ready.
-- The account/profile foundation is local only; it is not server authentication.
+- Product catalog, product details, categories, variants, and published availability come from FabOS.
+- Multi-item cart state is retained locally only as a convenience until checkout; final pricing and eligibility are revalidated by FabOS.
+- Customer registration, login, logout, profile, quotes, orders, and payment-session creation use the backend.
+- Custom-work requests can upload STL, 3MF, OBJ, STEP/STP files up to 25 MB.
+- Checkout creates the server-side order first and then starts the configured payment session.
+- Customer order pages expose only customer-safe progress and fulfillment information.
+
+The frontend still requires the FabOS API to be running and requires a configured production payment provider before online payment can actually be completed.
 
 ## Backend alignment
 
