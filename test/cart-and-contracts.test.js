@@ -32,6 +32,7 @@ test('order payload preserves product identity, variant, configuration, and ship
     cart: [{
       id: 'dock-black',
       productId: 'dock',
+      variantId: 'dock-black',
       name: 'Desk Cable Dock',
       price: 18,
       quantity: 2,
