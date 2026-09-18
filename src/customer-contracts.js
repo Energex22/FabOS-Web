@@ -1,6 +1,5 @@
 export const CUSTOMER_CONTRACT_VERSION=2
 
-const finitePositive = value => Number.isFinite(Number(value)) && Number(value) > 0
 const normalizeQuantity = value => Math.min(1000, Math.max(1, Math.floor(Number(value) || 1)))
 
 export function buildOrderPayload({cart,form,subtotal,shipping,total}){
