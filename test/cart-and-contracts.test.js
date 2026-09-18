@@ -78,3 +78,9 @@ test('quote payload normalizes customer project data and optional file metadata'
   assert.equal(payload.project.idea, 'Custom bracket')
   assert.deepEqual(payload.file, { name: 'bracket.step', type: 'model/step', size: 2048 })
 })
+
+
+test('cart caps unsafe persisted quantities', () => {
+  const cart = addCartItem([], { id: 'large', name: 'Large quantity', price: 1, quantity: 5000 })
+  assert.equal(cart[0].quantity, 1000)
+})
