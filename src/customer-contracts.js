@@ -3,7 +3,7 @@ export const CUSTOMER_CONTRACT_VERSION=1
 export function buildOrderPayload({cart,form,subtotal,shipping,total}){
  return {
   contractVersion:CUSTOMER_CONTRACT_VERSION,
-  channel:'customer-web',
+  channel:'website',
   customer:{name:form.name.trim(),email:form.email.trim()},
   shippingAddress:{address:form.address.trim(),city:form.city.trim(),state:form.state.trim(),zip:form.zip.trim()},
   notes:form.notes.trim(),
@@ -22,7 +22,7 @@ export function buildOrderPayload({cart,form,subtotal,shipping,total}){
 export function buildQuotePayload({data,file}){
  return {
   contractVersion:CUSTOMER_CONTRACT_VERSION,
-  channel:'customer-web',
+  channel:'website',
   customer:{name:data.name.trim(),email:data.email.trim()},
   project:{
    idea:data.idea.trim(),
