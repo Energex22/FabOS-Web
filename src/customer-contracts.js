@@ -9,7 +9,7 @@ export function buildOrderPayload({cart,form,subtotal,shipping,total}){
   notes:form.notes.trim(),
   items:cart.map(item=>({
    productId:item.productId||item.id,
-   variantId:item.id,
+   variantId:item.variantId||null,
    name:item.name,
    unitPrice:Number(item.price),
    quantity:Number(item.quantity),
