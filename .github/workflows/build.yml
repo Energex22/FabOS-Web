@@ -2,7 +2,7 @@ name: FabOS Web Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/extra-testing-fabvex]
   pull_request:
     branches: [main]
 
