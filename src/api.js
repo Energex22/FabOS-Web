@@ -45,7 +45,7 @@ export function catalogImageUrl(image){
  if(!image)return ''
  const value=String(image.url||image.path||'').trim()
  if(!value)return ''
- if(/^https?:\\/\\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value
+ if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value
  return `${API_BASE}${value.startsWith('/')?'':'/'}${value}`
 }
 export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
