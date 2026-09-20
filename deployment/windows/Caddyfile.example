@@ -1,0 +1,11 @@
+# Rename to Caddyfile and replace the domain.
+fabvex.example.com {
+    encode gzip
+
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    root * C:\FabVex\FabOS-Web\dist
+    file_server
+}
