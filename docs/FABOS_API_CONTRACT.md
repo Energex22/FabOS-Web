@@ -63,9 +63,9 @@ Updates customer-editable profile fields. The server remains authoritative for i
 
 ### `POST /api/v1/quote-requests`
 
-Public endpoint for a first-time custom-work request. Accepts `name`, `email`, `project`, and optional file metadata. FabOS creates or reuses a customer record by email and creates the quote request through the existing quote service. No customer account or password is required just to request a quote.
+Public endpoint for a first-time custom-work request. Accepts `name`, `email`, `project`, and optional `file_name` + `file_base64`. FabOS creates or reuses a customer record by email and creates the quote request through the existing quote service. No customer account or password is required just to request a quote.
 
-Binary file upload is not yet part of the endpoint. The browser sends the project and, when supplied, the real model/reference file to the multipart upload endpoint. Supported formats are STL, 3MF, OBJ, STEP/STP with a 25 MB limit.
+Reference files are stored server-side with the quote request. Supported formats are STL, 3MF, OBJ, STEP/STP with a 25 MB limit. The API validates the decoded file size and extension before persisting it.
 
 ### `GET /api/v1/customer/quotes`
 
