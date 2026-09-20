@@ -72,3 +72,17 @@ server or secure tunnel instead.
 - test recovery after a server reboot
 
 Do not use Vite's development server as the public production web server.
+
+## First server bring-up
+
+1. Clone FabOS and FabOS-Web into the target directories.
+2. Install Python 3.11, Node.js LTS, Git, and Caddy.
+3. Run `npm install` and `npm run build` in FabOS-Web.
+4. Copy `Caddyfile.example` to the Server directory and replace the domain.
+5. Set the production `FABOS_DATA_DIR` to a directory outside the Git checkout.
+6. Start the stack with `Start-FabVex-Production.ps1`.
+7. Confirm `http://127.0.0.1:8000/api/v1/health` locally.
+8. Only after local verification, configure DNS/router/firewall for 80/443.
+9. Test the site from a device outside the home network.
+
+Never put payment secrets, database files, or customer uploads in the Git repository.
