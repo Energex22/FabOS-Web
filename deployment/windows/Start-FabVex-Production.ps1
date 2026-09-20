@@ -6,6 +6,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$envFile = Join-Path $PSScriptRoot "server.env"
+if (Test-Path -LiteralPath $envFile) {
+    Get-Content -LiteralPath $envFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line -match "^([^=]+)=(.*)$") {
+            [Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim(), "Process")
+        }
+    }
+}
+
 function Require-Path($Path, $Label) {
     if (-not (Test-Path -LiteralPath $Path)) { throw "$Label was not found: $Path" }
 }
