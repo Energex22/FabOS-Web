@@ -22,3 +22,11 @@ jobs:
         run: npm test
       - name: Build storefront
         run: npm run build
+
+      - name: Upload production storefront
+        uses: actions/upload-artifact@v4
+        with:
+          name: FabVex-Web-production
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
