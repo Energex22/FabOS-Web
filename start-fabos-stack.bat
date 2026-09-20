@@ -1,6 +1,44 @@
 @echo off
-setlocal
-cd /d "%~dp0"
+setlocal EnableExtensions
+
+REM ============================================================
+REM FABVEX ADMIN LAUNCHER CONFIGURATION
+REM Uncomment and edit these paths for a fixed machine setup.
+REM Otherwise the launcher auto-detects or prompts for FabOS.
+REM ============================================================
+REM set "FABOS_DIR=C:\FabOS"
+REM set "FABOS_WEB_DIR=C:\FabOS-Web"
+
+if not defined FABOS_WEB_DIR set "FABOS_WEB_DIR=%~dp0"
+for %%I in ("%FABOS_WEB_DIR%") do set "FABOS_WEB_DIR=%%~fI"
+if not defined FABOS_DIR if exist "%FABOS_WEB_DIR%..\FabOS\fabos_api\server.py" set "FABOS_DIR=%FABOS_WEB_DIR%..\FabOS"
+if defined FABOS_DIR for %%I in ("%FABOS_DIR%") do set "FABOS_DIR=%%~fI"
+
+if not exist "%FABOS_WEB_DIR%\package.json" (
+  echo ERROR: FabVex Web folder not found: %FABOS_WEB_DIR%
+  echo Edit FABOS_WEB_DIR at the top of this BAT file.
+  pause
+  exit /b 1
+)
+if not defined FABOS_DIR (
+  echo FabOS backend folder was not found automatically.
+  echo.
+  set /p "FABOS_DIR=Enter the full path to your FabOS folder: "
+  if not defined FABOS_DIR (
+    echo No FabOS directory was supplied.
+    pause
+    exit /b 1
+  )
+  for %%I in ("%FABOS_DIR%") do set "FABOS_DIR=%%~fI"
+)
+if not exist "%FABOS_DIR%\fabos_api\server.py" (
+  echo ERROR: %FABOS_DIR% is not a FabOS checkout.
+  echo Expected: fabos_api\server.py
+  pause
+  exit /b 1
+)
+
+cd /d "%FABOS_WEB_DIR%"
 
 title Fabvex Development Stack
 
@@ -29,24 +67,14 @@ if not exist "node_modules\vite\bin\vite.js" (
   )
 )
 
-set "FABOS_DIR=%FABOS_DIR%"
-if not defined FABOS_DIR if exist "%~dp0..\FabOS\fabos_api\server.py" set "FABOS_DIR=%~dp0..\FabOS"
-
 if defined FABOS_DIR (
   echo Starting FabOS API from:
   echo %FABOS_DIR%
   start "FabOS API" /b cmd /c "cd /d "%FABOS_DIR%" && python -m fabos_api.server"
-) else (
-  echo FabOS backend folder was not found automatically.
-  echo.
-  echo Set FABOS_DIR to your FabOS folder before running this launcher.
-  echo Example: set FABOS_DIR=C:\FabOS
-  echo.
-  echo The website will still start, but live FabOS catalog data will be unavailable.
-)
+ )
 
 echo Starting customer website...
-start "Fabvex Web Server" /b cmd /c "npm run dev"
+start "Fabvex Web Server" /b cmd /c "cd /d "%FABOS_WEB_DIR%" && npm run dev"
 
 echo.
 echo Waiting for the website...
