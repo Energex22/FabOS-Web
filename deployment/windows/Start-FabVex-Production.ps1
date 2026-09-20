@@ -19,6 +19,7 @@ Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
 
 $env:FABOS_API_HOST = "127.0.0.1"
 $env:FABOS_API_PORT = "8000"
+$env:FABOS_API_THREADS = "8"
 if (-not $env:FABOS_DATA_DIR) { $env:FABOS_DATA_DIR = "C:\FabVex\Data" }
 
 Write-Host "Starting FabOS API on 127.0.0.1:8000..."
