@@ -1,13 +1,17 @@
 # FabVex production reverse proxy template.
-# Replace YOUR-DOMAIN before use.
 #
-# Caddy terminates HTTPS automatically and proxies only /api traffic to FabOS.
-# Keep FabOS itself bound to 127.0.0.1:8000.
+# Copy to C:\FabVex\Server\Caddyfile and replace YOUR-DOMAIN before use.
+# Adjust the root path if the checkout does not live under C:\FabVex.
+#
+# Caddy terminates HTTPS automatically and is the only public entry point.
+# Keep the FabOS API bound to 127.0.0.1:8000 and never forward port 8000.
+#
+# See DOMAIN_AND_HTTPS.md for DNS, router, and Windows service setup.
 
 YOUR-DOMAIN {
     encode gzip
 
-    root * C:\FabOS\FabOS-Web\dist
+    root * C:\FabVex\FabOS-Web\dist
 
     handle /api/* {
         reverse_proxy 127.0.0.1:8000
@@ -23,5 +27,6 @@ YOUR-DOMAIN {
         Referrer-Policy "strict-origin-when-cross-origin"
         X-Frame-Options "SAMEORIGIN"
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
     }
 }
