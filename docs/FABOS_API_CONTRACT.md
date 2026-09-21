@@ -1,6 +1,6 @@
 # FabOS customer API contract
 
-This document defines the customer-facing HTTP boundary between FabOS-Web and the internal FabOS application. The routes are implemented in the FabOS backend; runtime availability still depends on the local or production FabOS service being started and configured.
+This document defines the customer-facing HTTP boundary between FabOS-Web and the internal FabOS application. The routes are implemented in the FabOS backend and are the production source of truth for customer identity, catalog, pricing, orders, quotes, and payment sessions.
 
 ## Base
 
@@ -63,9 +63,9 @@ Updates customer-editable profile fields. The server remains authoritative for i
 
 ### `POST /api/v1/quote-requests`
 
-Public endpoint for a first-time custom-work request. Accepts `name`, `email`, `project`, and optional file metadata. FabOS creates or reuses a customer record by email and creates the quote request through the existing quote service. No customer account or password is required just to request a quote.
+Public endpoint for a first-time custom-work request. Accepts `name`, `email`, `project`, and optional `file_name` + `file_base64`. FabOS creates or reuses a customer record by email and creates the quote request through the existing quote service. No customer account or password is required just to request a quote.
 
-Binary file upload is not yet part of the endpoint. The browser sends filename/type/size metadata only.
+Reference files are stored server-side with the quote request. Supported formats are STL, 3MF, OBJ, STEP/STP with a 25 MB limit. The API validates the decoded file size and extension before persisting it.
 
 ### `GET /api/v1/customer/quotes`
 
@@ -113,7 +113,13 @@ Accepts:
 }
 ```
 
-FabOS validates that every product is customer-eligible and every selected variant is active. The server calculates product pricing, tax, shipping, and the final total. The shipping address is stored with the order and the checkout channel is recorded as `customer-web`.
+FabOS validates that every product is customer-eligible and every selected variant is active. The server calculates product pricing, tax, shipping, and the final total. The shipping address is stored with the order and the checkout channel is recorded as `website`.
+
+## Payment session
+
+### `POST /api/v1/customer/orders/{orderId}/payment-session`
+
+Creates or reuses the customer's active payment attempt for the order. The backend calculates the amount from the server-side order/invoice and returns a provider checkout URL when the configured payment provider is available. If no provider is configured, the order remains recorded and the response explicitly reports that payment setup is unavailable rather than claiming success.
 
 ## Status mapping
 

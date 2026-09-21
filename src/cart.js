@@ -12,7 +12,7 @@ function storage(){
 
 function normalizeItem(item){
   if(!item||typeof item!=='object')return null
-  const quantity=Math.max(1,Math.floor(Number(item.quantity)||0))
+  const quantity=Math.min(1000,Math.max(1,Math.floor(Number(item.quantity)||0)))
   const price=Number(item.price)
   if(!item.id||!Number.isFinite(price)||price<0||quantity<1)return null
   return {...item,quantity,price}
