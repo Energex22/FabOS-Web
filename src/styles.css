@@ -4,3 +4,75 @@
 .product-meta{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px;color:#66706a;font-size:.78rem;letter-spacing:.02em}
 .product-meta span{padding:6px 9px;border:1px solid rgba(0,0,0,.08);border-radius:999px}
 .catalog-meta{display:block;margin-top:10px;color:#68736d;font-size:.76rem;letter-spacing:.02em}
+
+
+/* FabVex Concept D brand system */
+@import url('https://fonts.googleapis.com/css2?family=Allura&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700;1,800&family=Urbanist:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700;1,800&display=swap');
+:root{
+  --ink:#f4f7f5;
+  --muted:#a7b2ad;
+  --line:#26332f;
+  --paper:#080c0c;
+  --dark:#050707;
+  --accent:#00ff66;
+  --accent-2:#00a3ff;
+  --accent-red:#ff2d32;
+  --brand-panel:#0b1210;
+  --brand-silver:#e9eeeb;
+  font-family:Archivo,Urbanist,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+html,body{background:var(--paper);color:var(--ink)}
+body{font-family:Archivo,Urbanist,ui-sans-serif,system-ui,sans-serif}
+.nav{background:rgba(8,12,12,.9);border-bottom-color:rgba(0,255,102,.16)}
+.nav-links a,.orders-nav-link{color:#c7d0cc}
+.nav-links a:hover,.orders-nav-link:hover{color:var(--accent)}
+.brand{font-family:Archivo,Urbanist,sans-serif;font-style:italic;letter-spacing:.035em;transform:skew(-5deg)}
+.brand>span:last-child{font-weight:800;letter-spacing:-.045em}
+.brand>span:last-child>span{font-weight:800;color:var(--accent)}
+.brand-mark{background:#050908;border-color:rgba(0,255,102,.4);box-shadow:0 0 18px rgba(0,255,102,.1)}
+.brand-mark img{width:28px;height:28px;object-fit:contain;border-radius:0}
+.hero,.process,.custom,.about,.faq{background:#080c0c;border-bottom-color:var(--line);border-top-color:var(--line)}
+.hero-object{background:linear-gradient(145deg,#0d1714,#070b0b);border:1px solid rgba(0,255,102,.14);box-shadow:inset 0 0 80px rgba(0,255,102,.04)}
+.object-ring{border-color:rgba(0,255,102,.28)}
+.floating-cube,.product-shape{background:#050707;color:var(--accent);box-shadow:35px 35px 0 #18231f;border:1px solid rgba(0,255,102,.16)}
+.hero h1,.section-heading h2,.custom h2,.about h2{font-family:Archivo,Urbanist,sans-serif;font-weight:800;letter-spacing:-.055em}
+.hero h1 em,.section-heading h2 em,.custom h2 em,.about h2 em{font-family:Allura,"Brush Script MT",cursive;font-style:normal;font-size:1.08em;letter-spacing:-.015em;color:var(--accent)}
+.eyebrow{color:var(--accent)!important}
+.button{font-family:Urbanist,Archivo,sans-serif;border-color:#31403a}
+.button.primary{background:var(--brand-silver);color:#07100b;border-color:var(--brand-silver)}
+.button.primary:hover{background:var(--accent);border-color:var(--accent);box-shadow:0 0 24px rgba(0,255,102,.18)}
+.button.secondary{color:#e8eeeb;border-color:#3a4742;background:rgba(255,255,255,.02)}
+.button.secondary:hover{border-color:var(--accent);color:var(--accent)}
+.button.light{background:var(--accent);border-color:var(--accent);color:#031007}
+.shop-section{background:#0d1412;border-color:var(--line)}
+.category-row button{color:#c9d2ce;border-color:#35423d;background:transparent}
+.category-row button.active,.category-row button:hover,.add-button:hover{background:var(--accent);color:#031007;border-color:var(--accent)}
+.product-card{background:#101815;border:1px solid #1e2a25}
+.product-card:hover,.product-card:focus-visible{box-shadow:0 18px 45px rgba(0,0,0,.45);border-color:rgba(0,255,102,.32)}
+.product-image{background:linear-gradient(145deg,#121d19,#0a100e)}
+.product-image>span{background:#eaf1ed;color:#08100b}
+.product-info h3,.product-info strong,.step h3,.cart-head h2,.modal-head h2,.detail-copy h2{color:#f3f7f5}
+.product-info p,.step p,.hero-text,.section-heading>p:last-child,.about-copy p,.detail-description{color:var(--muted)}
+.product-meta span{border-color:#2b3933;color:#aebbb5}
+.custom-panel{background:linear-gradient(135deg,#050807,#0c1511);border:1px solid rgba(0,255,102,.18);box-shadow:inset 0 0 80px rgba(0,255,102,.025)}
+.custom-examples .example-main,.example-side div{background:#101a16;border-color:#263630}
+.example-main{color:var(--accent)}
+footer{background:#040706;border-top:1px solid rgba(0,255,102,.14)}
+footer p,footer small{color:#87938e}
+.cart-drawer,.custom-modal,.product-detail{background:#0b1110;color:#f3f7f5}
+.cart-head,.modal-head,.cart-summary,.cart-item,.detail-section,.faq-row{border-color:#26332f}
+.cart-empty,.success-state p,.detail-note{color:var(--muted)}
+.mini-product,.detail-visual{background:#101815}
+.custom-form input,.custom-form textarea{background:#0d1512;color:#eef4f0;border-color:#2b3933}
+.custom-form input:focus,.custom-form textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,255,102,.08)}
+.upload-box{background:#101815;border-color:#3a4942;color:#98a49f}
+.upload-box strong{color:#eaf1ed}
+.detail-close{background:#0e1512;color:#eaf1ed;border-color:#2f3e38}
+.detail-visual>span{background:#eaf1ed;color:#07100b}
+.shop-tools,.shop-search,.shop-sort,.shop-search input,.shop-sort select{color:#dce5e0}
+.shop-search,.shop-sort select{background:#0c1411;border-color:#2b3933}
+.shop-search input{background:transparent;color:#edf4f0}
+.orders-nav-link{font-family:Urbanist,Archivo,sans-serif}
+/* Brand marks across the supporting customer flows */
+.account-brand,.checkout-brand,.orders-brand,.order-brand,.product-brand,.shop-brand,.cw-brand{font-family:Archivo,Urbanist,sans-serif;font-style:italic;font-weight:800;letter-spacing:-.04em}
+.account-brand img,.checkout-brand img,.orders-brand img,.order-brand img,.product-brand img,.shop-brand img,.cw-mark img{object-fit:contain}
