@@ -10,7 +10,24 @@ Customer-facing frontend for the 3D-printing business. The customer experience i
 - `/custom-work.html` — four-step custom project request flow
 - `/checkout.html` — cart review, customer/shipping details, and order capture foundation
 - `/orders.html` — customer order history
-- `/order.html?number=FBO-...` — individual order details and customer-facing progress timeline
+- `/order.html?id=...` — individual order details and customer-facing progress timeline
+
+## Production deployment
+
+Production runs on Windows with Caddy serving this build and proxying `/api/*`
+to the FabOS API on `127.0.0.1:8000`, so the storefront and API share one
+origin and no CORS configuration is needed.
+
+- [`deployment/windows/README.md`](deployment/windows/README.md) — layout,
+  bring-up steps, and the pre-launch checklist
+- [`deployment/windows/DOMAIN_AND_HTTPS.md`](deployment/windows/DOMAIN_AND_HTTPS.md)
+  — registering a domain, DNS, port forwarding, automatic TLS certificates,
+  running Caddy as a Windows service, and tunnel fallbacks for CGNAT
+
+The GitHub Pages workflow is intentionally disabled, since publishing the
+storefront separately from the API would require exposing the API publicly and
+maintaining a CORS allowlist. `.github/workflows/pages.yml` documents how to
+re-enable it.
 
 ## One-click Windows starter
 
