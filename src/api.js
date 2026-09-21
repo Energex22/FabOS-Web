@@ -1,5 +1,12 @@
 const configuredApiBase=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL
 const API_BASE=(configuredApiBase||((typeof window!=='undefined'&&window.location.hostname)?`${window.location.protocol}//${window.location.hostname}:8000`:'http://127.0.0.1:8000')).replace(/\/$/,'')
+
+function apiUrl(path){
+ const normalized=String(path||'').startsWith('/')?String(path):`/${path}`
+ if(API_BASE.endsWith('/api') && normalized.startsWith('/api/'))return `${API_BASE}${normalized.slice(4)}`
+ if(API_BASE==='/' || API_BASE==='')return normalized
+ return `${API_BASE}${normalized}`
+}
 const AUTH_TOKEN_KEY='fabos.auth.token'
 
 function authHeaders(){
@@ -17,7 +24,7 @@ function publicError(message,fallback){
 async function request(path,options={}){
  let response
  try{
-  response=await fetch(`${API_BASE}${path}`,{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
+  response=await fetch(apiUrl(path),{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
  }catch(err){
   throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)
  }
@@ -29,7 +36,7 @@ async function request(path,options={}){
 
 async function multipartRequest(path,formData){
  let response
- try{response=await fetch(`${API_BASE}${path}`,{method:'POST',headers:{...authHeaders()},body:formData})}
+ try{response=await fetch(apiUrl(path),{method:'POST',headers:{...authHeaders()},body:formData})}
  catch(err){throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)}
  let data=null
  try{data=await response.json()}catch(_){data=null}
@@ -46,7 +53,7 @@ export function catalogImageUrl(image){
  const value=String(image.url||image.path||'').trim()
  if(!value)return ''
  if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value
- return `${API_BASE}${value.startsWith('/')?'':'/'}${value}`
+ return apiUrl(value)
 }
 export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
 export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
