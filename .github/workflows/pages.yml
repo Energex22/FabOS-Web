@@ -1,8 +1,21 @@
 name: FabOS Web Pages
 
+# Disabled as an automatic deployment: production is the Windows + Caddy stack in
+# deployment/windows, which serves dist/ and proxies /api on a single origin.
+# GitHub Pages is a separate origin, so publishing here would require the FabOS
+# API to be reachable publicly and FABOS_CORS_ORIGINS to allow the Pages origin.
+#
+# To re-enable:
+#   1. Enable GitHub Pages for this repository (Settings -> Pages, source:
+#      GitHub Actions).
+#   2. Set the VITE_API_URL repository variable to the public API base,
+#      for example https://your-domain/api. It must not be localhost.
+#   3. Add the Pages origin to FABOS_CORS_ORIGINS on the production server,
+#      since fabos_core/api.py defaults to localhost origins only.
+#   4. Restore the push trigger below.
 on:
-  push:
-    branches: [main]
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 permissions:
