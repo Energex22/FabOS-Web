@@ -70,7 +70,11 @@ export async function createPublicQuoteWithFile(payload,file){
   file_name:file.name,file_base64:fileBase64
  })})
 }
-\nexport async function loginTeam(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}\nexport async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}\n\nexport const customerApi={
+
+export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
+export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
+
+export const customerApi={
  health:()=>request('/api/v1/health'),
  catalog:getPublicCatalog,
  product:getPublicProduct,
