@@ -50,7 +50,7 @@ export function catalogImageUrl(image){
 }
 export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token)setToken(data.token);return data}
 export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token)setToken(data.token);return data}
-export function logoutCustomer(){const token=getToken();clearToken();return token?request('/api/v1/auth/logout',{method:'POST'}).catch(()=>null):Promise.resolve(null)}
+export async function logoutCustomer(){const token=getToken();if(!token){clearToken();return null}try{return await request('/api/v1/auth/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}})}catch{return null}finally{clearToken()}}
 export async function createPublicQuoteWithFile(payload,file){
  const formData=new FormData()
  formData.append('name',payload.name)
