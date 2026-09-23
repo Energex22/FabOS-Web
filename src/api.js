@@ -8,12 +8,6 @@ function apiUrl(path){
  if(API_BASE==='/' || API_BASE==='')return normalized
  return `${API_BASE}${normalized}`
 }
-function authHeaders(){
- if(typeof localStorage==='undefined')return {}
- const token=localStorage.getItem(AUTH_TOKEN_KEY)
- return token?{Authorization:`Bearer ${token}`}:{ }
-}
-
 function publicError(message,fallback){
  const detail=typeof message==='string'?message:''
  if(!detail)return fallback
@@ -55,7 +49,7 @@ export function catalogImageUrl(image){
  return apiUrl(value)
 }
 export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token)setToken(data.token);return data}
-export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
+export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token)setToken(data.token);return data}
 export function logoutCustomer(){const token=getToken();clearToken();return token?request('/api/v1/auth/logout',{method:'POST'}).catch(()=>null):Promise.resolve(null)}
 export async function createPublicQuoteWithFile(payload,file){
  const buffer=await file.arrayBuffer()
