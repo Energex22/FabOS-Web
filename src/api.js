@@ -1,5 +1,5 @@
 import {authHeaders,clearToken,getToken,setToken,AUTH_TOKEN_KEY} from './auth.js'
-const configuredApiBase=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL
+const configuredApiBase=import.meta.env?.VITE_API_URL||import.meta.env?.VITE_API_BASE_URL||''
 const API_BASE=(configuredApiBase||'/api').replace(/\/$/,'')
 
 function apiUrl(path){
