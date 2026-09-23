@@ -38,3 +38,22 @@ test('auth storage failures fail closed',()=>{
   assert.doesNotThrow(()=>setToken('token-123'))
   assert.doesNotThrow(()=>clearToken())
 })
+
+test('logout sends the token before clearing local auth state',async()=>{
+  globalThis.localStorage=createStorage()
+  setToken('token-logout')
+  const previousFetch=globalThis.fetch
+  let authorization=''
+  globalThis.fetch=async (_url,options={})=>{
+    authorization=options.headers?.Authorization||''
+    return {ok:true,json:async()=>({ok:true})}
+  }
+  try{
+    const {logoutCustomer}=await import('../src/api.js')
+    await logoutCustomer()
+    assert.equal(authorization,'Bearer token-logout')
+    assert.equal(getToken(),'')
+  }finally{
+    globalThis.fetch=previousFetch
+  }
+})
