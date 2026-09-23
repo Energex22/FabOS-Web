@@ -52,16 +52,16 @@ export async function loginCustomer(identifier,password){const data=await reques
 export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token)setToken(data.token);return data}
 export function logoutCustomer(){const token=getToken();clearToken();return token?request('/api/v1/auth/logout',{method:'POST'}).catch(()=>null):Promise.resolve(null)}
 export async function createPublicQuoteWithFile(payload,file){
- const buffer=await file.arrayBuffer()
- const bytes=new Uint8Array(buffer)
- let binary=''
- const chunkSize=0x8000
- for(let offset=0;offset<bytes.length;offset+=chunkSize)binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(offset+chunkSize,bytes.length)))
- const fileBase64=btoa(binary)
- return request('/api/v1/quote-requests',{method:'POST',body:JSON.stringify({
-  name:payload.name,email:payload.email,project:payload.project,
-  file_name:file.name,file_base64:fileBase64
- })})
+ const formData=new FormData()
+ formData.append('name',payload.name)
+ formData.append('email',payload.email)
+ formData.append('idea',payload.project?.idea||'')
+ formData.append('dimensions',payload.project?.dimensions||'')
+ formData.append('material',payload.project?.material||'')
+ formData.append('quantity',String(payload.project?.quantity||1))
+ formData.append('notes',payload.project?.notes||'')
+ formData.append('file',file,file.name)
+ return multipartRequest('/api/v1/quote-requests/upload',formData)
 }
 
 export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token)setToken(data.token);return data}
