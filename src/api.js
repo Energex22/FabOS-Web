@@ -1,6 +1,6 @@
 import {authHeaders,clearToken,getToken,setToken,AUTH_TOKEN_KEY} from './auth.js'
 const configuredApiBase=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL
-const API_BASE=(configuredApiBase||((typeof window!=='undefined'&&window.location.hostname)?`${window.location.protocol}//${window.location.hostname}:8000`:'http://127.0.0.1:8000')).replace(/\/$/,'')
+const API_BASE=(configuredApiBase||'/api').replace(/\/$/,'')
 
 function apiUrl(path){
  const normalized=String(path||'').startsWith('/')?String(path):`/${path}`
