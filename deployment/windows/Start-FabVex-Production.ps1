@@ -27,6 +27,12 @@ Require-Path (Join-Path $FabOSWebDir "dist") "Production storefront build"
 Require-Path (Join-Path $CaddyDir "Caddyfile") "Caddyfile"
 Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
 
+$caddyExe = Join-Path $CaddyDir "caddy.exe"
+$caddyFile = Join-Path $CaddyDir "Caddyfile"
+Write-Host "Validating Caddy configuration..."
+& $caddyExe validate --config $caddyFile
+if ($LASTEXITCODE -ne 0) { throw "Caddy configuration validation failed." }
+
 $env:FABOS_API_HOST = "127.0.0.1"
 $env:FABOS_API_PORT = "8000"
 $env:FABOS_API_THREADS = "8"
@@ -45,7 +51,12 @@ try {
 }
 
 Write-Host "Starting Caddy..."
-$caddy = Start-Process -FilePath (Join-Path $CaddyDir "caddy.exe") -ArgumentList "run","--config",(Join-Path $CaddyDir "Caddyfile") -WorkingDirectory $CaddyDir -PassThru
+$caddy = Start-Process -FilePath $caddyExe -ArgumentList "run","--config",$caddyFile -WorkingDirectory $CaddyDir -PassThru
+Start-Sleep -Seconds 2
+if ($caddy.HasExited) {
+    if (-not $api.HasExited) { Stop-Process -Id $api.Id -Force -ErrorAction SilentlyContinue }
+    throw "Caddy exited during startup. Check the Caddy configuration and certificate/DNS settings."
+}
 
 Write-Host ""
 Write-Host "FABVEX production stack is running."
