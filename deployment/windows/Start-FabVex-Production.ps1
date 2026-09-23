@@ -40,22 +40,36 @@ if (-not $env:FABOS_DATA_DIR) { $env:FABOS_DATA_DIR = "C:\FabVex\Data" }
 
 Write-Host "Starting FabOS API on 127.0.0.1:8000..."
 $api = Start-Process -FilePath "python" -ArgumentList "-m","fabos_api.server" -WorkingDirectory $FabOSDir -PassThru -WindowStyle Hidden
-Start-Sleep -Seconds 2
 
-try {
-    $health = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8000/api/v1/health" -TimeoutSec 5
-    if ($health.StatusCode -ne 200) { throw "FabOS API health check returned HTTP $($health.StatusCode)." }
-} catch {
-    if ($api.HasExited) { throw "FabOS API exited during startup. Check the Python/runtime configuration." }
-    throw
+$healthy = $false
+for ($attempt = 1; $attempt -le 15; $attempt++) {
+    Start-Sleep -Seconds 2
+    if ($api.HasExited) { break }
+    try {
+        $health = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8000/api/v1/health" -TimeoutSec 5
+        if ($health.StatusCode -eq 200) {
+            $healthy = $true
+            break
+        }
+    } catch {
+        # The API may still be importing modules or opening the database.
+    }
+}
+if (-not $healthy) {
+    if (-not $api.HasExited) { Stop-Process -Id $api.Id -Force -ErrorAction SilentlyContinue }
+    throw "FabOS API did not become healthy within 30 seconds. Check the Python/runtime configuration."
 }
 
 Write-Host "Starting Caddy..."
-$caddy = Start-Process -FilePath $caddyExe -ArgumentList "run","--config",$caddyFile -WorkingDirectory $CaddyDir -PassThru
-Start-Sleep -Seconds 2
-if ($caddy.HasExited) {
+try {
+    $caddy = Start-Process -FilePath $caddyExe -ArgumentList "run","--config",$caddyFile -WorkingDirectory $CaddyDir -PassThru
+    Start-Sleep -Seconds 2
+    if ($caddy.HasExited) {
+        throw "Caddy exited during startup. Check the Caddy configuration and certificate/DNS settings."
+    }
+} catch {
     if (-not $api.HasExited) { Stop-Process -Id $api.Id -Force -ErrorAction SilentlyContinue }
-    throw "Caddy exited during startup. Check the Caddy configuration and certificate/DNS settings."
+    throw
 }
 
 Write-Host ""
