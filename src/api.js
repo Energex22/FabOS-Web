@@ -1,3 +1,4 @@
+import {authHeaders,clearToken,getToken,setToken,AUTH_TOKEN_KEY} from './auth.js'
 const configuredApiBase=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL
 const API_BASE=(configuredApiBase||((typeof window!=='undefined'&&window.location.hostname)?`${window.location.protocol}//${window.location.hostname}:8000`:'http://127.0.0.1:8000')).replace(/\/$/,'')
 
@@ -7,8 +8,6 @@ function apiUrl(path){
  if(API_BASE==='/' || API_BASE==='')return normalized
  return `${API_BASE}${normalized}`
 }
-const AUTH_TOKEN_KEY='fabos.auth.token'
-
 function authHeaders(){
  if(typeof localStorage==='undefined')return {}
  const token=localStorage.getItem(AUTH_TOKEN_KEY)
@@ -55,9 +54,9 @@ export function catalogImageUrl(image){
  if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value
  return apiUrl(value)
 }
-export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
+export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token)setToken(data.token);return data}
 export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
-export function logoutCustomer(){const token=typeof localStorage!=='undefined'?localStorage.getItem(AUTH_TOKEN_KEY):null;if(typeof localStorage!=='undefined')localStorage.removeItem(AUTH_TOKEN_KEY);return token?request('/api/v1/auth/logout',{method:'POST'}).catch(()=>null):Promise.resolve(null)}
+export function logoutCustomer(){const token=getToken();clearToken();return token?request('/api/v1/auth/logout',{method:'POST'}).catch(()=>null):Promise.resolve(null)}
 export async function createPublicQuoteWithFile(payload,file){
  const buffer=await file.arrayBuffer()
  const bytes=new Uint8Array(buffer)
