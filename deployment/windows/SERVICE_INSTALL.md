@@ -52,3 +52,10 @@ must never be committed to Git.
 ### Preflight checks
 
 The service installer now verifies that the built storefront (`FabOS-Web\dist`) exists and refuses to install if the Caddyfile still contains the `YOUR-DOMAIN` placeholder. This prevents a superficially successful service installation from starting without a real storefront or hostname.
+
+
+### Private API environment file
+
+The API service can load the same private `server.env` used by the interactive launcher. Keep the file out of Git and restrict its Windows ACLs to the service account/administrators. If `deployment\\windows\\server.env` exists when the installer runs, it is automatically passed to the API service. A different file can be supplied explicitly with `-EnvFile`.
+
+The environment file is read by the Python service entry point at startup, so payment credentials and other production settings survive Windows reboots instead of depending on an interactive PowerShell session. Explicit service arguments remain authoritative for the bind address, port, thread count, and data directory.
