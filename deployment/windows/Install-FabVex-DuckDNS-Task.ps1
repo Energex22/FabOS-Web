@@ -1,5 +1,6 @@
 param(
     [string]$EnvFile = "",
+    [string]$FabOSDir = "C:\FabVex\FabOS",
     [string]$TaskName = "FabVex-DuckDNS-Update",
     [int]$IntervalMinutes = 10,
     [switch]$Remove
@@ -34,9 +35,7 @@ if ($IntervalMinutes -lt 5 -or $IntervalMinutes -gt 1440) { throw "IntervalMinut
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument (
     '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -EnvFile "{1}"' -f $updater, $EnvFile
 )
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1)
-$trigger.RepetitionInterval = New-TimeSpan -Minutes $IntervalMinutes
-$trigger.RepetitionDuration = New-TimeSpan -Days 3650
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) -RepetitionDuration (New-TimeSpan -Days 3650)
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
