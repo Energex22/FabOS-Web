@@ -1,0 +1,21 @@
+# FabVex FabOS API service template
+#
+# Recommended: install with NSSM (https://nssm.cc/) or an equivalent Windows
+# service wrapper. Keep the API bound to 127.0.0.1; Caddy is the only public
+# entry point.
+#
+# Application:
+#   C:\FabVex\FabOS\.venv\Scripts\python.exe
+# Arguments:
+#   -m fabos_api.server
+# Startup directory:
+#   C:\FabVex\FabOS
+#
+# Environment:
+#   FABOS_API_HOST=127.0.0.1
+#   FABOS_API_PORT=8000
+#   FABOS_API_THREADS=8
+#   FABOS_DATA_DIR=C:\FabVex\Data
+#
+# Configure the service to restart automatically on failure. Run the service
+# under a dedicated Windows account with read/write access to FABOS_DATA_DIR.
