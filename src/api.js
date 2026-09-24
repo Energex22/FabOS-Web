@@ -1,5 +1,6 @@
-const configuredApiBase=import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL
-const API_BASE=(configuredApiBase||((typeof window!=='undefined'&&window.location.hostname)?`${window.location.protocol}//${window.location.hostname}:8000`:'http://127.0.0.1:8000')).replace(/\/$/,'')
+import {authHeaders,clearToken,getToken,setToken,AUTH_TOKEN_KEY} from './auth.js'
+const configuredApiBase=import.meta.env?.VITE_API_URL||import.meta.env?.VITE_API_BASE_URL||''
+const API_BASE=(configuredApiBase||'/api').replace(/\/$/,'')
 
 function apiUrl(path){
  const normalized=String(path||'').startsWith('/')?String(path):`/${path}`
@@ -7,14 +8,6 @@ function apiUrl(path){
  if(API_BASE==='/' || API_BASE==='')return normalized
  return `${API_BASE}${normalized}`
 }
-const AUTH_TOKEN_KEY='fabos.auth.token'
-
-function authHeaders(){
- if(typeof localStorage==='undefined')return {}
- const token=localStorage.getItem(AUTH_TOKEN_KEY)
- return token?{Authorization:`Bearer ${token}`}:{ }
-}
-
 function publicError(message,fallback){
  const detail=typeof message==='string'?message:''
  if(!detail)return fallback
@@ -55,23 +48,23 @@ export function catalogImageUrl(image){
  if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value
  return apiUrl(value)
 }
-export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
-export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
-export function logoutCustomer(){const token=typeof localStorage!=='undefined'?localStorage.getItem(AUTH_TOKEN_KEY):null;if(typeof localStorage!=='undefined')localStorage.removeItem(AUTH_TOKEN_KEY);return token?request('/api/v1/auth/logout',{method:'POST'}).catch(()=>null):Promise.resolve(null)}
+export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token)setToken(data.token);return data}
+export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token)setToken(data.token);return data}
+export async function logoutCustomer(){const token=getToken();if(!token){clearToken();return null}try{return await request('/api/v1/auth/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}})}catch{return null}finally{clearToken()}}
 export async function createPublicQuoteWithFile(payload,file){
- const buffer=await file.arrayBuffer()
- const bytes=new Uint8Array(buffer)
- let binary=''
- const chunkSize=0x8000
- for(let offset=0;offset<bytes.length;offset+=chunkSize)binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(offset+chunkSize,bytes.length)))
- const fileBase64=btoa(binary)
- return request('/api/v1/quote-requests',{method:'POST',body:JSON.stringify({
-  name:payload.name,email:payload.email,project:payload.project,
-  file_name:file.name,file_base64:fileBase64
- })})
+ const formData=new FormData()
+ formData.append('name',payload.name)
+ formData.append('email',payload.email)
+ formData.append('idea',payload.project?.idea||'')
+ formData.append('dimensions',payload.project?.dimensions||'')
+ formData.append('material',payload.project?.material||'')
+ formData.append('quantity',String(payload.project?.quantity||1))
+ formData.append('notes',payload.project?.notes||'')
+ formData.append('file',file,file.name)
+ return multipartRequest('/api/v1/quote-requests/upload',formData)
 }
 
-export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token&&typeof localStorage!=='undefined')localStorage.setItem(AUTH_TOKEN_KEY,data.token);return data}
+export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token)setToken(data.token);return data}
 export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
 export async function runOperationsAutomation(){return request('/api/v1/admin/operations/automation/tick',{method:'POST'})}
 

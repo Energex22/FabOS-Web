@@ -27,6 +27,12 @@ Require-Path (Join-Path $FabOSWebDir "dist") "Production storefront build"
 Require-Path (Join-Path $CaddyDir "Caddyfile") "Caddyfile"
 Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
 
+$caddyExe = Join-Path $CaddyDir "caddy.exe"
+$caddyFile = Join-Path $CaddyDir "Caddyfile"
+Write-Host "Validating Caddy configuration..."
+& $caddyExe validate --config $caddyFile
+if ($LASTEXITCODE -ne 0) { throw "Caddy configuration validation failed." }
+
 $env:FABOS_API_HOST = "127.0.0.1"
 $env:FABOS_API_PORT = "8000"
 $env:FABOS_API_THREADS = "8"
@@ -34,18 +40,37 @@ if (-not $env:FABOS_DATA_DIR) { $env:FABOS_DATA_DIR = "C:\FabVex\Data" }
 
 Write-Host "Starting FabOS API on 127.0.0.1:8000..."
 $api = Start-Process -FilePath "python" -ArgumentList "-m","fabos_api.server" -WorkingDirectory $FabOSDir -PassThru -WindowStyle Hidden
-Start-Sleep -Seconds 2
 
-try {
-    $health = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8000/api/v1/health" -TimeoutSec 5
-    if ($health.StatusCode -ne 200) { throw "FabOS API health check returned HTTP $($health.StatusCode)." }
-} catch {
-    if ($api.HasExited) { throw "FabOS API exited during startup. Check the Python/runtime configuration." }
-    throw
+$healthy = $false
+for ($attempt = 1; $attempt -le 15; $attempt++) {
+    Start-Sleep -Seconds 2
+    if ($api.HasExited) { break }
+    try {
+        $health = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8000/api/v1/health" -TimeoutSec 5
+        if ($health.StatusCode -eq 200) {
+            $healthy = $true
+            break
+        }
+    } catch {
+        # The API may still be importing modules or opening the database.
+    }
+}
+if (-not $healthy) {
+    if (-not $api.HasExited) { Stop-Process -Id $api.Id -Force -ErrorAction SilentlyContinue }
+    throw "FabOS API did not become healthy within 30 seconds. Check the Python/runtime configuration."
 }
 
 Write-Host "Starting Caddy..."
-$caddy = Start-Process -FilePath (Join-Path $CaddyDir "caddy.exe") -ArgumentList "run","--config",(Join-Path $CaddyDir "Caddyfile") -WorkingDirectory $CaddyDir -PassThru
+try {
+    $caddy = Start-Process -FilePath $caddyExe -ArgumentList "run","--config",$caddyFile -WorkingDirectory $CaddyDir -PassThru
+    Start-Sleep -Seconds 2
+    if ($caddy.HasExited) {
+        throw "Caddy exited during startup. Check the Caddy configuration and certificate/DNS settings."
+    }
+} catch {
+    if (-not $api.HasExited) { Stop-Process -Id $api.Id -Force -ErrorAction SilentlyContinue }
+    throw
+}
 
 Write-Host ""
 Write-Host "FABVEX production stack is running."
