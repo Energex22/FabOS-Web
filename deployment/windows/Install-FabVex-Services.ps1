@@ -63,19 +63,11 @@ foreach ($name in @($apiService, $caddyService)) {
     }
 }
 
-$apiWrapper = Join-Path $CaddyDir "run-fabos-api.cmd"
-@"
-@echo off
-cd /d "$FabOSDir"
-set "FABOS_API_HOST=127.0.0.1"
-set "FABOS_API_PORT=8000"
-set "FABOS_API_THREADS=8"
-set "FABOS_DATA_DIR=$DataDir"
-"$pythonExe" -m fabos_api.server
-"@ | Set-Content -LiteralPath $apiWrapper -Encoding ASCII
+$apiEntryPoint = Join-Path $FabOSDir "deployment\windows\run_api_service.py"
+Require-Path $apiEntryPoint "FabOS Windows API service entry point"
 
 $caddyBinPath = '"{0}" run --config "{1}"' -f $caddyExe, $caddyFile
-$apiBinPath = '"{0}" /c ""{1}""' -f $env:ComSpec, $apiWrapper
+$apiBinPath = '"{0}" "{1}" --host 127.0.0.1 --port 8000 --threads 8 --data-dir "{2}"' -f $pythonExe, $apiEntryPoint, $DataDir
 
 Run-Native sc.exe @(
     "create",$apiService,"start=","auto","binPath=",$apiBinPath,
@@ -94,9 +86,10 @@ Run-Native sc.exe @("config",$caddyService,"depend=",$apiService)
 Run-Native sc.exe @("failure",$caddyService,"reset=","86400","actions=","restart/5000/restart/15000/restart/60000")
 Run-Native sc.exe @("failureflag",$caddyService,"1")
 
-# The API wrapper sets its environment and working directory explicitly. This
-# avoids depending on the service manager working directory (normally System32)
-# or on a stale machine environment inherited by services.exe.
+# The API service launches the Python interpreter directly. Its dedicated
+# entry point adds the FabOS checkout to sys.path and receives all production
+# paths as explicit arguments, so the service does not depend on a System32
+# working directory or inherited services.exe environment.
 
 Start-Service -Name $apiService
 $healthy = $false
