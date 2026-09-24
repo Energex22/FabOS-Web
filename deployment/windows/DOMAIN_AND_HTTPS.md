@@ -187,7 +187,7 @@ of this architecture.
 
 In the private `server.env`, replace the placeholder hostnames:
 
-    STRIPE_SUCCESS_URL=https://YOUR-DOMAIN/order.html
+    STRIPE_SUCCESS_URL=https://YOUR-DOMAIN/orders.html
     STRIPE_CANCEL_URL=https://YOUR-DOMAIN/checkout.html
 
 ### Re-run the pre-launch checklist
