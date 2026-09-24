@@ -68,7 +68,7 @@ port blocking first and use the DNS-01 alternative below.
 ## Step 4: Configure the Caddyfile
 
 Copy `Caddyfile` from this directory to `C:\FabVex\Server\Caddyfile`, then
-replace `YOUR-DOMAIN` with the real hostname.
+replace `fabvex.duckdns.org` with the real hostname.
 
 The template already has the correct site root (`C:\FabVex\FabOS-Web\dist`),
 the `/api/*` reverse proxy to `127.0.0.1:8000`, SPA-style fallback routing, and
@@ -90,8 +90,8 @@ successfully` in the output.
 Then verify from **a phone on cellular data**, not from inside the home
 network:
 
-- `https://YOUR-DOMAIN/` should load the storefront
-- `https://YOUR-DOMAIN/api/v1/health` should return `{"ok": true, ...}`
+- `https://fabvex.duckdns.org/` should load the storefront
+- `https://fabvex.duckdns.org/api/v1/health` should return `{"ok": true, ...}`
 
 Testing from inside the network often fails even when everything is correct,
 because many home routers cannot route back to their own public IP address.
@@ -139,7 +139,7 @@ block at the top of the Caddyfile:
     	dynamic_dns {
     		provider cloudflare {env.CLOUDFLARE_API_TOKEN}
     		domains {
-    			YOUR-DOMAIN
+    			fabvex.duckdns.org
     		}
     		check_interval 5m
     	}
@@ -187,8 +187,8 @@ of this architecture.
 
 In the private `server.env`, replace the placeholder hostnames:
 
-    STRIPE_SUCCESS_URL=https://YOUR-DOMAIN/orders.html
-    STRIPE_CANCEL_URL=https://YOUR-DOMAIN/checkout.html
+    STRIPE_SUCCESS_URL=https://fabvex.duckdns.org/orders.html
+    STRIPE_CANCEL_URL=https://fabvex.duckdns.org/checkout.html
 
 ### Re-run the pre-launch checklist
 
@@ -214,14 +214,14 @@ test once the site is publicly reachable:
 
 ## Free hostname option: DuckDNS
 
-For a no-cost starting deployment, DuckDNS provides free dynamic DNS subdomains such as `yourname.duckdns.org`. It is suitable for a home-hosted FabVex server because the hostname can follow a changing public IP. See the official DuckDNS documentation for account setup and the HTTPS update API.
+For a no-cost starting deployment, DuckDNS provides free dynamic DNS subdomains such as `fabvex.duckdns.org`. It is suitable for a home-hosted FabVex server because the hostname can follow a changing public IP. See the official DuckDNS documentation for account setup and the HTTPS update API.
 
 Recommended initial setup:
 
-1. Create a DuckDNS account and claim an available FABVEX-oriented hostname, for example `fabvex-<your-name>.duckdns.org`.
+1. Create a DuckDNS account and claim an available FABVEX-oriented hostname, for example `fabvex.duckdns.org`.
 2. Point that hostname at the public IPv4 address of the router hosting the FabVex machine, using DuckDNS's updater or your router's DDNS support.
 3. Forward TCP **80** and **443** from the router to the Windows FabVex machine. Do **not** forward TCP 8000 or the development frontend port.
-4. Put the exact hostname in the Caddyfile in place of `YOUR-DOMAIN`.
+4. Put the exact hostname in the Caddyfile in place of `fabvex.duckdns.org`.
 5. Run the production service installer. Caddy will obtain and renew the HTTPS certificate automatically.
 
 DuckDNS is free dynamic DNS; it is not the TLS provider. Caddy obtains the certificate through ACME, normally from Let's Encrypt, which provides free automated TLS certificates. Keep ports 80 and 443 reachable so certificate issuance/renewal can work normally.
