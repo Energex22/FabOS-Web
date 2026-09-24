@@ -210,3 +210,22 @@ test once the site is publicly reachable:
 | Site dies after reboot | Caddy not installed as a service |
 | Site breaks after days or weeks | Public IP changed; add dynamic DNS |
 | Caddy fails to bind on start | Already running as a service, or another process holds 80/443 |
+
+
+## Free hostname option: DuckDNS
+
+For a no-cost starting deployment, DuckDNS provides free dynamic DNS subdomains such as `yourname.duckdns.org`. It is suitable for a home-hosted FabVex server because the hostname can follow a changing public IP. See the official DuckDNS documentation for account setup and the HTTPS update API.
+
+Recommended initial setup:
+
+1. Create a DuckDNS account and claim an available FABVEX-oriented hostname, for example `fabvex-<your-name>.duckdns.org`.
+2. Point that hostname at the public IPv4 address of the router hosting the FabVex machine, using DuckDNS's updater or your router's DDNS support.
+3. Forward TCP **80** and **443** from the router to the Windows FabVex machine. Do **not** forward TCP 8000 or the development frontend port.
+4. Put the exact hostname in the Caddyfile in place of `YOUR-DOMAIN`.
+5. Run the production service installer. Caddy will obtain and renew the HTTPS certificate automatically.
+
+DuckDNS is free dynamic DNS; it is not the TLS provider. Caddy obtains the certificate through ACME, normally from Let's Encrypt, which provides free automated TLS certificates. Keep ports 80 and 443 reachable so certificate issuance/renewal can work normally.
+
+### Alternative: Cloudflare Tunnel
+
+A named Cloudflare Tunnel is another strong option if you later purchase a domain and move DNS to Cloudflare. Cloudflare requires a domain for a normal published application hostname; its temporary `trycloudflare.com` Quick Tunnels are intended for testing rather than production. The current architecture can use either approach because the public proxy remains in front of the same local storefront/API stack.
