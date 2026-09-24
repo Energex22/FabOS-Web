@@ -3,7 +3,8 @@ param(
     [string]$CaddyDir = "C:\FabVex\Server",
     [string]$FabOSWebDir = "C:\FabVex\FabOS-Web",
     [string]$DataDir = "C:\FabVex\Data",
-    [switch]$Remove
+    [switch]$Remove,
+    [string]$EnvFile = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,6 +44,11 @@ Require-Path $CaddyDir "Caddy directory"
 Require-Path (Join-Path $FabOSWebDir "dist") "FabOS-Web built storefront"
 Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
 Require-Path (Join-Path $CaddyDir "Caddyfile") "Caddyfile"
+if (-not $EnvFile) {
+    $candidateEnvFile = Join-Path $PSScriptRoot "server.env"
+    if (Test-Path -LiteralPath $candidateEnvFile) { $EnvFile = $candidateEnvFile }
+}
+if ($EnvFile) { Require-Path $EnvFile "FabVex server environment file" }
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 $CaddyDataDir = Join-Path $CaddyDir "data"
 $CaddyLogDir = Join-Path $CaddyDir "logs"
@@ -76,6 +82,7 @@ Require-Path $apiEntryPoint "FabOS Windows API service entry point"
 
 $caddyBinPath = '"{0}" run --config "{1}" --data-dir "{2}"' -f $caddyExe, $caddyFile, $CaddyDataDir
 $apiBinPath = '"{0}" "{1}" --host 127.0.0.1 --port 8000 --threads 8 --data-dir "{2}"' -f $pythonExe, $apiEntryPoint, $DataDir
+if ($EnvFile) { $apiBinPath += ' --env-file "' + $EnvFile + '"' }
 
 Run-Native sc.exe @(
     "create",$apiService,"start=","auto","binPath=",$apiBinPath,
@@ -121,5 +128,6 @@ Write-Host "  API:   $apiService"
 Write-Host "  Caddy: $caddyService"
 Write-Host "  Caddy data: $CaddyDataDir"
 Write-Host "  Caddy logs: $CaddyLogDir"
+if ($EnvFile) { Write-Host "  API env:    $EnvFile" }
 Write-Host "  Health: http://127.0.0.1:8000/api/v1/health"
 Write-Host ""
