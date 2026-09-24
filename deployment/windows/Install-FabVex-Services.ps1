@@ -129,6 +129,15 @@ if (-not $healthy) {
 
 Start-Service -Name $caddyService
 
+$duckDnsInstaller = Join-Path $PSScriptRoot "Install-FabVex-DuckDNS-Task.ps1"
+if ($EnvFile -and (Test-Path -LiteralPath $duckDnsInstaller)) {
+    $envText = Get-Content -LiteralPath $EnvFile -Raw
+    if ($envText -match "(?m)^DUCKDNS_DOMAIN=.+$" -and $envText -match "(?m)^DUCKDNS_TOKEN=.+$") {
+        & $duckDnsInstaller -EnvFile $EnvFile -FabOSDir $FabOSDir
+        if ($LASTEXITCODE -ne 0) { throw "DuckDNS scheduled task installation failed." }
+    }
+}
+
 Write-Host ""
 Write-Host "FabVex production services installed and started."
 Write-Host "  API:   $apiService"
