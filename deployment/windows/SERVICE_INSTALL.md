@@ -48,3 +48,7 @@ does not protect against disk failure.
 Do not store payment credentials in these scripts. Production secrets belong
 in the private server environment file or Windows service environment and
 must never be committed to Git.
+
+### Preflight checks
+
+The service installer now verifies that the built storefront (`FabOS-Web\dist`) exists and refuses to install if the Caddyfile still contains the `YOUR-DOMAIN` placeholder. This prevents a superficially successful service installation from starting without a real storefront or hostname.

@@ -1,6 +1,7 @@
 param(
     [string]$FabOSDir = "C:\FabVex\FabOS",
     [string]$CaddyDir = "C:\FabVex\Server",
+    [string]$FabOSWebDir = "C:\FabVex\FabOS-Web",
     [string]$DataDir = "C:\FabVex\Data",
     [switch]$Remove
 )
@@ -39,6 +40,7 @@ if ($Remove) {
 Require-Path $FabOSDir "FabOS directory"
 Require-Path (Join-Path $FabOSDir "fabos_api\server.py") "FabOS API server"
 Require-Path $CaddyDir "Caddy directory"
+Require-Path (Join-Path $FabOSWebDir "dist") "FabOS-Web built storefront"
 Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
 Require-Path (Join-Path $CaddyDir "Caddyfile") "Caddyfile"
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
@@ -48,6 +50,9 @@ New-Item -ItemType Directory -Force -Path $CaddyDataDir, $CaddyLogDir | Out-Null
 
 $caddyExe = Join-Path $CaddyDir "caddy.exe"
 $caddyFile = Join-Path $CaddyDir "Caddyfile"
+if (Select-String -LiteralPath $caddyFile -Pattern "YOUR-DOMAIN" -SimpleMatch -Quiet) {
+    throw "Caddyfile still contains the YOUR-DOMAIN placeholder. Replace it with the real public hostname before installing production services."
+}
 $pythonExe = Join-Path $FabOSDir ".venv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $pythonExe)) {
     $python = Get-Command python -ErrorAction SilentlyContinue
