@@ -63,8 +63,19 @@ foreach ($name in @($apiService, $caddyService)) {
     }
 }
 
-$apiBinPath = '"{0}" -m fabos_api.server' -f $pythonExe
+$apiWrapper = Join-Path $CaddyDir "run-fabos-api.cmd"
+@"
+@echo off
+cd /d "$FabOSDir"
+set "FABOS_API_HOST=127.0.0.1"
+set "FABOS_API_PORT=8000"
+set "FABOS_API_THREADS=8"
+set "FABOS_DATA_DIR=$DataDir"
+"$pythonExe" -m fabos_api.server
+"@ | Set-Content -LiteralPath $apiWrapper -Encoding ASCII
+
 $caddyBinPath = '"{0}" run --config "{1}"' -f $caddyExe, $caddyFile
+$apiBinPath = '"{0}" /c ""{1}""' -f $env:ComSpec, $apiWrapper
 
 Run-Native sc.exe @(
     "create",$apiService,"start=","auto","binPath=",$apiBinPath,
@@ -79,15 +90,13 @@ Run-Native sc.exe @(
     "DisplayName=","FabVex Caddy Web Gateway"
 )
 Run-Native sc.exe @("description",$caddyService,"FabVex HTTPS storefront and reverse proxy")
+Run-Native sc.exe @("config",$caddyService,"depend=",$apiService)
 Run-Native sc.exe @("failure",$caddyService,"reset=","86400","actions=","restart/5000/restart/15000/restart/60000")
 Run-Native sc.exe @("failureflag",$caddyService,"1")
 
-# Service processes inherit the machine environment. The API deliberately
-# remains loopback-only; Caddy owns the public HTTP/HTTPS listeners.
-[Environment]::SetEnvironmentVariable("FABOS_API_HOST","127.0.0.1","Machine")
-[Environment]::SetEnvironmentVariable("FABOS_API_PORT","8000","Machine")
-[Environment]::SetEnvironmentVariable("FABOS_API_THREADS","8","Machine")
-[Environment]::SetEnvironmentVariable("FABOS_DATA_DIR",$DataDir,"Machine")
+# The API wrapper sets its environment and working directory explicitly. This
+# avoids depending on the service manager working directory (normally System32)
+# or on a stale machine environment inherited by services.exe.
 
 Start-Service -Name $apiService
 $healthy = $false
