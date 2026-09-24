@@ -51,6 +51,11 @@ if (-not $EnvFile) {
     elseif (Test-Path -LiteralPath $fabosEnvFile) { $EnvFile = $fabosEnvFile }
 }
 if ($EnvFile) { Require-Path $EnvFile "FabVex server environment file" }
+if ($EnvFile) {
+    # The API and DuckDNS scheduled task run as SYSTEM. Keep secrets readable only by
+    # SYSTEM and local administrators; do not rely on source-control exclusion alone.
+    Run-Native icacls.exe @($EnvFile, "/inheritance:r", "/grant:r", "SYSTEM:F", "Administrators:F")
+}
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 $CaddyDataDir = Join-Path $CaddyDir "data"
 $CaddyLogDir = Join-Path $CaddyDir "logs"
