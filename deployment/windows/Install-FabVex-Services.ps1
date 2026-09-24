@@ -42,6 +42,9 @@ Require-Path $CaddyDir "Caddy directory"
 Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
 Require-Path (Join-Path $CaddyDir "Caddyfile") "Caddyfile"
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
+$CaddyDataDir = Join-Path $CaddyDir "data"
+$CaddyLogDir = Join-Path $CaddyDir "logs"
+New-Item -ItemType Directory -Force -Path $CaddyDataDir, $CaddyLogDir | Out-Null
 
 $caddyExe = Join-Path $CaddyDir "caddy.exe"
 $caddyFile = Join-Path $CaddyDir "Caddyfile"
@@ -66,7 +69,7 @@ foreach ($name in @($apiService, $caddyService)) {
 $apiEntryPoint = Join-Path $FabOSDir "deployment\windows\run_api_service.py"
 Require-Path $apiEntryPoint "FabOS Windows API service entry point"
 
-$caddyBinPath = '"{0}" run --config "{1}"' -f $caddyExe, $caddyFile
+$caddyBinPath = '"{0}" run --config "{1}" --data-dir "{2}"' -f $caddyExe, $caddyFile, $CaddyDataDir
 $apiBinPath = '"{0}" "{1}" --host 127.0.0.1 --port 8000 --threads 8 --data-dir "{2}"' -f $pythonExe, $apiEntryPoint, $DataDir
 
 Run-Native sc.exe @(
@@ -93,7 +96,7 @@ Run-Native sc.exe @("failureflag",$caddyService,"1")
 
 Start-Service -Name $apiService
 $healthy = $false
-for ($i=0; $i -lt 15; $i++) {
+for ($i = 0; $i -lt 15; $i++) {
     Start-Sleep -Seconds 2
     try {
         $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8000/api/v1/health" -TimeoutSec 5
@@ -111,5 +114,7 @@ Write-Host ""
 Write-Host "FabVex production services installed and started."
 Write-Host "  API:   $apiService"
 Write-Host "  Caddy: $caddyService"
+Write-Host "  Caddy data: $CaddyDataDir"
+Write-Host "  Caddy logs: $CaddyLogDir"
 Write-Host "  Health: http://127.0.0.1:8000/api/v1/health"
 Write-Host ""
