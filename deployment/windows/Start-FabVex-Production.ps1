@@ -33,13 +33,29 @@ Write-Host "Validating Caddy configuration..."
 & $caddyExe validate --config $caddyFile
 if ($LASTEXITCODE -ne 0) { throw "Caddy configuration validation failed." }
 
+$pythonExe = Join-Path $FabOSDir ".venv\Scripts\python.exe"
+if (-not (Test-Path -LiteralPath $pythonExe)) {
+    $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if ($pythonCommand) {
+        $pythonExe = $pythonCommand.Source
+    } else {
+        throw "Python was not found. Create $FabOSDir\.venv or install Python and add it to PATH."
+    }
+}
+Write-Host "Using Python: $pythonExe"
+
 $env:FABOS_API_HOST = "127.0.0.1"
 $env:FABOS_API_PORT = "8000"
 $env:FABOS_API_THREADS = "8"
 if (-not $env:FABOS_DATA_DIR) { $env:FABOS_DATA_DIR = "C:\FabVex\Data" }
 
+$logDir = Join-Path $CaddyDir "logs"
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+$apiStdout = Join-Path $logDir "fabos-api.stdout.log"
+$apiStderr = Join-Path $logDir "fabos-api.stderr.log"
+
 Write-Host "Starting FabOS API on 127.0.0.1:8000..."
-$api = Start-Process -FilePath "python" -ArgumentList "-m","fabos_api.server" -WorkingDirectory $FabOSDir -PassThru -WindowStyle Hidden
+$api = Start-Process -FilePath $pythonExe -ArgumentList "-m","fabos_api.server" -WorkingDirectory $FabOSDir -PassThru -WindowStyle Hidden -RedirectStandardOutput $apiStdout -RedirectStandardError $apiStderr
 
 $healthy = $false
 for ($attempt = 1; $attempt -le 15; $attempt++) {
@@ -57,7 +73,12 @@ for ($attempt = 1; $attempt -le 15; $attempt++) {
 }
 if (-not $healthy) {
     if (-not $api.HasExited) { Stop-Process -Id $api.Id -Force -ErrorAction SilentlyContinue }
-    throw "FabOS API did not become healthy within 30 seconds. Check the Python/runtime configuration."
+    $detail = if (Test-Path -LiteralPath $apiStderr) {
+        (Get-Content -LiteralPath $apiStderr -Tail 20 -ErrorAction SilentlyContinue) -join [Environment]::NewLine
+    } else {
+        "No API stderr log was created."
+    }
+    throw ("FabOS API did not become healthy within 30 seconds. API log: " + $apiStderr + [Environment]::NewLine + $detail)
 }
 
 Write-Host "Starting Caddy..."
@@ -76,4 +97,5 @@ Write-Host ""
 Write-Host "FABVEX production stack is running."
 Write-Host "API PID:   $($api.Id)"
 Write-Host "Caddy PID: $($caddy.Id)"
+Write-Host "API logs:  $logDir"
 Write-Host ""
