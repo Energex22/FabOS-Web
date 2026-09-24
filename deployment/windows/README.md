@@ -51,14 +51,15 @@ PC a reserved LAN address.
    with the real storefront hostname.
 5. Copy `server.env.example` to a private `server.env` in this directory and
    set `FABOS_DATA_DIR` to a directory outside any Git checkout.
-6. Start the stack with `Start-FabVex-Production.ps1`.
+6. Start the stack with `Start-FabVex-Production.ps1` for interactive bring-up/testing.
 7. Confirm `http://127.0.0.1:8000/api/v1/health` locally.
-8. Only after local verification, configure DNS, router forwarding, and the
+8. For unattended operation after validation, install the API and Caddy as Windows services using the service templates in this directory.
+9. Only after local verification, configure DNS, router forwarding, and the
    firewall for ports 80 and 443. See
    [DOMAIN_AND_HTTPS.md](DOMAIN_AND_HTTPS.md).
-9. Verify the storefront and `https://YOUR-DOMAIN/api/v1/health` from a device
+10. Verify the storefront and `https://YOUR-DOMAIN/api/v1/health` from a device
    outside the home network.
-10. Configure Stripe test-mode credentials and the webhook before accepting
+11. Configure Stripe test-mode credentials and the webhook before accepting
     real payments.
 
 ## Router and firewall
