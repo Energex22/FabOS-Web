@@ -1,6 +1,6 @@
-# FabVex production reverse proxy template.
+# FabVex production reverse proxy.
 #
-# Copy to C:\FabVex\Server\Caddyfile and replace YOUR-DOMAIN before use.
+# Hostname: fabvex.duckdns.org
 # Adjust the root path if the checkout does not live under C:\FabVex.
 #
 # Caddy terminates HTTPS automatically and is the only public entry point.
@@ -8,7 +8,7 @@
 #
 # See DOMAIN_AND_HTTPS.md for DNS, router, and Windows service setup.
 
-YOUR-DOMAIN {
+fabvex.duckdns.org {
     encode gzip
 
     root * C:\FabVex\FabOS-Web\dist
