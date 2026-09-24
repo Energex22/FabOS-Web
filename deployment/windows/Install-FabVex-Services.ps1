@@ -46,7 +46,9 @@ Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
 Require-Path (Join-Path $CaddyDir "Caddyfile") "Caddyfile"
 if (-not $EnvFile) {
     $candidateEnvFile = Join-Path $PSScriptRoot "server.env"
+    $fabosEnvFile = Join-Path $FabOSDir "deployment\windows\server.env"
     if (Test-Path -LiteralPath $candidateEnvFile) { $EnvFile = $candidateEnvFile }
+    elseif (Test-Path -LiteralPath $fabosEnvFile) { $EnvFile = $fabosEnvFile }
 }
 if ($EnvFile) { Require-Path $EnvFile "FabVex server environment file" }
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
