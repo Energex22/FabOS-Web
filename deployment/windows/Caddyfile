@@ -13,6 +13,15 @@ YOUR-DOMAIN {
 
     root * C:\FabVex\FabOS-Web\dist
 
+    log {
+        output file C:\FabVex\Server\logs\caddy-access.log {
+            roll_size 10MiB
+            roll_keep 10
+            roll_keep_for 720h
+        }
+        format json
+    }
+
     handle /api/* {
         reverse_proxy 127.0.0.1:8000
     }
