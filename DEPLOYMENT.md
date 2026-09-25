@@ -10,20 +10,22 @@ npm run build
 
 ## API configuration
 
-Set VITE_API_URL to the public HTTPS FabOS API before building:
+For the supported Windows + Caddy production deployment, leave the frontend API base at the same-origin relative path:
 
-VITE_API_URL=https://api.YOUR-DOMAIN
+VITE_API_URL=/api
+
+Caddy serves the storefront and proxies /api/* to FabOS on 127.0.0.1:8000. This keeps the browser and API on one origin and avoids a public API hostname or CORS requirement.
 
 Do not put Stripe secret keys or other private credentials in Vite environment variables. Anything prefixed with VITE_ is delivered to the browser.
 
 ## Hosting
 
-The static frontend can be deployed on GitHub Pages, Cloudflare Pages, or Render Static Sites.
+The supported production deployment is the Windows + Caddy stack in deployment/windows/. GitHub Pages remains disabled because a separate Pages origin would require a publicly reachable API and an explicit CORS configuration.
 
 ## Production rules
 
 - Use HTTPS.
-- Keep the FabOS API on a separate hostname such as api.YOUR-DOMAIN.
+- Keep the FabOS API bound to 127.0.0.1 and expose it only through Caddy /api/*.
 - Do not expose the FabOS desktop/admin UI publicly.
 - Do not store authoritative prices, payment state, or customer ownership in browser storage.
 - Browser cart data is only a convenience until the server creates the order.
