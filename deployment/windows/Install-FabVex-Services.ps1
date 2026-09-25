@@ -27,6 +27,8 @@ $apiService = "FabVex-FabOS-API"
 $caddyService = "FabVex-Caddy"
 
 if ($Remove) {
+    Remove-NetFirewallRule -DisplayName "FabVex Caddy HTTPS" -ErrorAction SilentlyContinue
+    Remove-NetFirewallRule -DisplayName "FabVex Caddy HTTP" -ErrorAction SilentlyContinue
     foreach ($name in @($caddyService, $apiService)) {
         $existing = Get-Service -Name $name -ErrorAction SilentlyContinue
         if ($existing) {
@@ -57,6 +59,15 @@ if ($EnvFile) {
     Run-Native icacls.exe @($EnvFile, "/inheritance:r", "/grant:r", "SYSTEM:F", "Administrators:F")
 }
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
+
+# Caddy is the only public listener. Allow only HTTP/HTTPS through Windows Firewall;
+# the API remains loopback-only on 127.0.0.1:8000.
+if (-not (Get-NetFirewallRule -DisplayName "FabVex Caddy HTTP" -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName "FabVex Caddy HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow -Profile Any | Out-Null
+}
+if (-not (Get-NetFirewallRule -DisplayName "FabVex Caddy HTTPS" -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName "FabVex Caddy HTTPS" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow -Profile Any | Out-Null
+}
 $CaddyDataDir = Join-Path $CaddyDir "data"
 $CaddyLogDir = Join-Path $CaddyDir "logs"
 New-Item -ItemType Directory -Force -Path $CaddyDataDir, $CaddyLogDir | Out-Null
