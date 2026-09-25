@@ -1,44 +1,41 @@
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$EnvFile
+    [string]$EnvFile = "C:\FabVex\FabOS\deployment\windows\server.env"
 )
 
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path -LiteralPath $EnvFile)) {
-    throw "FabVex environment file was not found: $EnvFile"
+function Read-EnvFile($Path) {
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "FabVex environment file was not found: $Path"
+    }
+    $values = @{}
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        $trimmed = $line.Trim()
+        if (-not $trimmed -or $trimmed.StartsWith("#") -or $trimmed -notmatch "^([^=]+)=(.*)$") {
+            continue
+        }
+        $key = $matches[1].Trim()
+        $value = $matches[2].Trim().Trim('"').Trim("'")
+        $values[$key] = $value
+    }
+    return $values
 }
 
-$values = @{}
-foreach ($line in Get-Content -LiteralPath $EnvFile) {
-    $trimmed = $line.Trim()
-    if (-not $trimmed -or $trimmed.StartsWith("#") -or $trimmed.StartsWith(";")) { continue }
-    $parts = $trimmed -split "=", 2
-    if ($parts.Count -ne 2) { continue }
-    $key = $parts[0].Trim()
-    $value = $parts[1].Trim().Trim('"').Trim("'")
-    $values[$key] = $value
-}
-
-$domain = [string]$values["DUCKDNS_DOMAIN"]
-$token = [string]$values["DUCKDNS_TOKEN"]
+$envValues = Read-EnvFile $EnvFile
+$domain = [string]$envValues["DUCKDNS_DOMAIN"]
+$token = [string]$envValues["DUCKDNS_TOKEN"]
 if (-not $domain -or -not $token) {
-    throw "DUCKDNS_DOMAIN and DUCKDNS_TOKEN are required in the private environment file."
+    throw "DUCKDNS_DOMAIN and DUCKDNS_TOKEN must be present in $EnvFile."
 }
 if ($domain -notmatch "^[a-z0-9-]+$") {
-    throw "DUCKDNS_DOMAIN contains an invalid DuckDNS subdomain."
+    throw "DUCKDNS_DOMAIN is invalid."
 }
 
-$uri = "https://www.duckdns.org/update?domains=$([uri]::EscapeDataString($domain))&token=$([uri]::EscapeDataString($token))&verbose=true"
-try {
-    $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -TimeoutSec 20
-    $body = ($response.Content | Out-String).Trim()
-} catch {
-    throw "DuckDNS update request failed: $($_.Exception.Message)"
+$query = "domains=$([uri]::EscapeDataString($domain))&token=$([uri]::EscapeDataString($token))&verbose=true"
+$response = Invoke-WebRequest -UseBasicParsing -Uri "https://www.duckdns.org/update?$query" -TimeoutSec 15
+$result = $response.Content.Trim()
+if (-not $result.ToLowerInvariant().StartsWith("ok")) {
+    throw "DuckDNS rejected the update: $result"
 }
 
-if (-not $body.ToLowerInvariant().StartsWith("ok")) {
-    throw "DuckDNS rejected the update."
-}
-
-Write-Host "DuckDNS update succeeded for $domain."
+Write-Host "DuckDNS updated: $domain"

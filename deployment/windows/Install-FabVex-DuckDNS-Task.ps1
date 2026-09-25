@@ -1,8 +1,6 @@
 param(
-    [string]$EnvFile = "",
     [string]$FabOSDir = "C:\FabVex\FabOS",
     [string]$TaskName = "FabVex-DuckDNS-Update",
-    [int]$IntervalMinutes = 10,
     [switch]$Remove
 )
 
@@ -13,6 +11,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     throw "Run this script from an elevated PowerShell window."
 }
 
+$envFile = Join-Path $FabOSDir "deployment\windows\server.env"
 $updater = Join-Path $PSScriptRoot "Update-FabVex-DuckDNS.ps1"
 
 if ($Remove) {
@@ -21,27 +20,23 @@ if ($Remove) {
     exit 0
 }
 
-if (-not $EnvFile) {
-    $candidate = Join-Path $PSScriptRoot "server.env"
-    $fabosCandidate = Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent) "FabOS\deployment\windows\server.env"
-    if (Test-Path -LiteralPath $candidate) { $EnvFile = $candidate }
-    elseif (Test-Path -LiteralPath $fabosCandidate) { $EnvFile = $fabosCandidate }
-}
-if (-not $EnvFile) { throw "No server.env was supplied or found automatically." }
-if (-not (Test-Path -LiteralPath $EnvFile)) { throw "Environment file was not found: $EnvFile" }
+if (-not (Test-Path -LiteralPath $envFile)) { throw "FabVex environment file was not found: $envFile" }
 if (-not (Test-Path -LiteralPath $updater)) { throw "DuckDNS updater was not found: $updater" }
-if ($IntervalMinutes -lt 5 -or $IntervalMinutes -gt 1440) { throw "IntervalMinutes must be between 5 and 1440." }
 
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument (
-    '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -EnvFile "{1}"' -f $updater, $EnvFile
+# Keep the secret file private while allowing the Windows administrator and
+# Local System (the scheduled-task identity) to use it.
+& icacls.exe $envFile /inheritance:r /grant:r "SYSTEM:F" "Administrators:F" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Could not secure ACLs on $envFile." }
+
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -EnvFile "{1}"' -f $updater, $envFile)
+$triggers = @(
+    New-ScheduledTaskTrigger -AtStartup
+    New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 10)
 )
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) -RepetitionDuration (New-TimeSpan -Days 3650)
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
-Start-ScheduledTask -TaskName $TaskName
-
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $triggers -Settings $settings -Principal $principal -Force | Out-Null
 Write-Host "Installed scheduled task: $TaskName"
-Write-Host "Update interval: every $IntervalMinutes minutes"
-Write-Host "Environment file: $EnvFile"
+Write-Host "DuckDNS refresh: at startup and every 10 minutes."
+Write-Host "Environment file: $envFile"
