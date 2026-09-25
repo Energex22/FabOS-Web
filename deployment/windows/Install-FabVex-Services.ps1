@@ -51,7 +51,7 @@ if (-not $EnvFile) {
     elseif (Test-Path -LiteralPath $fabosEnvFile) { $EnvFile = $fabosEnvFile }
 }
 if ($EnvFile) { Require-Path $EnvFile "FabVex server environment file" }
-if ($EnvFile) {\n    & icacls.exe $EnvFile /inheritance:r /grant:r "SYSTEM:F" "Administrators:F" | Out-Null\n    if ($LASTEXITCODE -ne 0) { throw "Could not secure ACLs on $EnvFile." }\n}\nif ($EnvFile) {
+if ($EnvFile) {
     # The API and DuckDNS scheduled task run as SYSTEM. Keep secrets readable only by
     # SYSTEM and local administrators; do not rely on source-control exclusion alone.
     Run-Native icacls.exe @($EnvFile, "/inheritance:r", "/grant:r", "SYSTEM:F", "Administrators:F")
