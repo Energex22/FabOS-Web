@@ -34,7 +34,18 @@ if ($Remove) {
             Run-Native sc.exe @("delete", $name)
         }
     }
-    Write-Host "FabVex production services removed."
+    foreach ($rule in @("FabVex-HTTPS","FabVex-HTTP")) {
+        Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
+    }
+    $duckDnsInstaller = Join-Path $PSScriptRoot "Install-FabVex-DuckDNS-Task.ps1"
+    if (Test-Path -LiteralPath $duckDnsInstaller) {
+        & $duckDnsInstaller -FabOSDir $FabOSDir -Remove
+    }
+    $backupInstaller = Join-Path $PSScriptRoot "Install-FabVex-BackupTask.ps1"
+    if (Test-Path -LiteralPath $backupInstaller) {
+        & $backupInstaller -FabOSDir $FabOSDir -DataDir $DataDir -Remove
+    }
+    Write-Host "FabVex production services, firewall rules, and scheduled tasks removed."
     exit 0
 }
 
@@ -129,6 +140,11 @@ if (-not $healthy) {
 
 Start-Service -Name $caddyService
 
+# Caddy is the only public boundary. Create narrowly scoped inbound firewall
+# rules for the ACME/HTTPS ports and leave the API on loopback.
+New-NetFirewallRule -DisplayName "FabVex-HTTP" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 80 -Profile Domain,Private,Public -ErrorAction SilentlyContinue | Out-Null
+New-NetFirewallRule -DisplayName "FabVex-HTTPS" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 443 -Profile Domain,Private,Public -ErrorAction SilentlyContinue | Out-Null
+
 $duckDnsInstaller = Join-Path $PSScriptRoot "Install-FabVex-DuckDNS-Task.ps1"
 if ($EnvFile -and (Test-Path -LiteralPath $duckDnsInstaller)) {
     $envText = Get-Content -LiteralPath $EnvFile -Raw
@@ -136,6 +152,12 @@ if ($EnvFile -and (Test-Path -LiteralPath $duckDnsInstaller)) {
         & $duckDnsInstaller -EnvFile $EnvFile -FabOSDir $FabOSDir
         if ($LASTEXITCODE -ne 0) { throw "DuckDNS scheduled task installation failed." }
     }
+}
+
+$backupInstaller = Join-Path $PSScriptRoot "Install-FabVex-BackupTask.ps1"
+if (Test-Path -LiteralPath $backupInstaller) {
+    & $backupInstaller -FabOSDir $FabOSDir -DataDir $DataDir
+    if ($LASTEXITCODE -ne 0) { throw "Backup scheduled task installation failed." }
 }
 
 Write-Host ""
