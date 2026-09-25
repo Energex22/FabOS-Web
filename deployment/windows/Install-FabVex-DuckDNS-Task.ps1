@@ -1,5 +1,6 @@
 param(
     [string]$FabOSDir = "C:\FabVex\FabOS",
+    [string]$EnvFile = "",
     [string]$TaskName = "FabVex-DuckDNS-Update",
     [switch]$Remove
 )
@@ -11,7 +12,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     throw "Run this script from an elevated PowerShell window."
 }
 
-$envFile = Join-Path $FabOSDir "deployment\windows\server.env"
+$envFile = if ($EnvFile) { $EnvFile } else { Join-Path $FabOSDir "deployment\windows\server.env" }
 $updater = Join-Path $PSScriptRoot "Update-FabVex-DuckDNS.ps1"
 
 if ($Remove) {
