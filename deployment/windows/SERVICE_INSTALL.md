@@ -14,10 +14,11 @@ Optional paths:
 
     .\Install-FabVex-Services.ps1 -FabOSDir C:\FabVex\FabOS -CaddyDir C:\FabVex\Server
 
-The installer validates the API entry point, storefront, Caddyfile, and Caddy
-configuration; creates/updates the API and Caddy services; configures automatic
-startup and service failure recovery; starts the API first and verifies
-/api/v1/health; and starts Caddy only after the API is healthy.
+The installer validates the FastAPI service entry point, storefront, Caddyfile,
+and Caddy configuration; creates/updates the API and Caddy services; runs a
+production preflight and creates an initial verified backup before installing;
+configures automatic startup and service failure recovery; starts the API first
+and verifies /api/v1/health; and starts Caddy only after the API is healthy.
 
 ## Remove
 
