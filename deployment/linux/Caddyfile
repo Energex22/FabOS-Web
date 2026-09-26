@@ -1,0 +1,27 @@
+# FABVEX production storefront + FabOS API reverse proxy.
+# Copy this file to /etc/caddy/Caddyfile and adjust paths if needed.
+
+fabvex.duckdns.org {
+    encode gzip
+
+    root * /opt/fabos-web/dist
+
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    handle {
+        try_files {path} {path}/ /index.html
+        file_server
+    }
+
+    header {
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Frame-Options "SAMEORIGIN"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        -Server
+    }
+}
