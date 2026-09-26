@@ -10,7 +10,7 @@ npm run build
 
 ## API configuration
 
-For the supported Windows + Caddy production deployment, leave the frontend API base at the same-origin relative path:
+For the supported Windows or Linux + Caddy production deployment, leave the frontend API base at the same-origin relative path:
 
 VITE_API_URL=/api
 
@@ -20,7 +20,7 @@ Do not put Stripe secret keys or other private credentials in Vite environment v
 
 ## Hosting
 
-The supported production deployment is the Windows + Caddy stack in deployment/windows/. GitHub Pages remains disabled because a separate Pages origin would require a publicly reachable API and an explicit CORS configuration.
+Supported production deployments are Windows + Caddy (`deployment/windows/`) and Linux + Caddy (`deployment/linux/`). GitHub Pages remains disabled because a separate Pages origin would require a publicly reachable API and an explicit CORS configuration.
 
 ## Production rules
 
