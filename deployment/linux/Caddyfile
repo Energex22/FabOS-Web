@@ -7,6 +7,10 @@ fabvex.duckdns.org {
     root * /opt/fabos-web/dist
 
     handle /api/* {
+        # Caddy is the trusted edge; replace any client-supplied forwarding
+        # identity so the API rate limiter cannot be bypassed with spoofed XFF.
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Real-IP {remote_host}
         reverse_proxy 127.0.0.1:8000
     }
 
