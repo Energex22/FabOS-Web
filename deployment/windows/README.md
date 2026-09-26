@@ -63,10 +63,10 @@ PC a reserved LAN address.
 9. Confirm `http://127.0.0.1:8000/api/v1/health` locally.
 10. For unattended operation after validation, install the API and Caddy as Windows services using `Install-FabVex-Services.ps1`. See `SERVICE_INSTALL.md`.
 11. Install the independent daily backup task with `Install-FabVex-BackupTask.ps1`; do not rely only on process shutdown hooks for backups.
-10. Only after local verification, configure DNS, router forwarding, and the
+12. Only after local verification, configure DNS, router forwarding, and the
    firewall for ports 80 and 443. See
    [DOMAIN_AND_HTTPS.md](DOMAIN_AND_HTTPS.md).
-11. Verify the storefront and `https://YOUR-DOMAIN/api/v1/health` from a device
+13. Verify the storefront and `https://YOUR-DOMAIN/api/v1/health` from a device
    outside the home network.
 14. Configure Stripe test-mode credentials and the webhook before accepting
     real payments.
