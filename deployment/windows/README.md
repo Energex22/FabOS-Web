@@ -49,8 +49,10 @@ PC a reserved LAN address.
    Caddy serves the resulting `dist` directory.
 4. Copy `Caddyfile` to `C:\FabVex\Server\Caddyfile` and replace `YOUR-DOMAIN`
    with the real storefront hostname.
-5. Copy `server.env.example` to a private `server.env` in this directory and
-   set `FABOS_DATA_DIR` to a directory outside any Git checkout.
+5. Copy `server.env.example` to a private `server.env` (preferably
+   `C:\FabVex\FabOS\deployment\windows\server.env`, or set `FABOS_ENV_FILE`
+   if you keep it elsewhere) and set `FABOS_DATA_DIR` to a directory outside
+   any Git checkout.
 6. Initialize/configure FabOS before starting the public boundary. From the FabOS
    checkout, run `python -m fabos_core.cli init`, then complete owner and Stripe
    setup (the CLI also supports the combined `setup-production` menu). The
