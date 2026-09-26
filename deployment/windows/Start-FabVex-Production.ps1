@@ -7,6 +7,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $envFile = Join-Path $PSScriptRoot "server.env"
+$fallbackEnvFile = Join-Path $FabOSDir "deployment\windows\server.env"
+if (-not (Test-Path -LiteralPath $envFile) -and (Test-Path -LiteralPath $fallbackEnvFile)) {
+    $envFile = $fallbackEnvFile
+}
 if (Test-Path -LiteralPath $envFile) {
     Get-Content -LiteralPath $envFile | ForEach-Object {
         $line = $_.Trim()
