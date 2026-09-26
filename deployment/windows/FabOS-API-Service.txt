@@ -1,21 +1,20 @@
-# FabVex FabOS API service template
+# FabVex FabOS API service reference
 #
-# Recommended: install with NSSM (https://nssm.cc/) or an equivalent Windows
-# service wrapper. Keep the API bound to 127.0.0.1; Caddy is the only public
-# entry point.
+# The supported Windows installer creates the service directly with sc.exe;
+# this file documents the equivalent process entry point for manual service
+# wrappers.
 #
 # Application:
 #   C:\FabVex\FabOS\.venv\Scripts\python.exe
 # Arguments:
-#   -m fabos_api.server
+#   deployment\windows\run_api_service.py --host 127.0.0.1 --port 8000 --threads 8 --data-dir C:\FabVex\Data --env-file C:\FabVex\FabOS-Web\deployment\windows\server.env
 # Startup directory:
 #   C:\FabVex\FabOS
 #
-# Environment:
-#   FABOS_API_HOST=127.0.0.1
-#   FABOS_API_PORT=8000
-#   FABOS_API_THREADS=8
-#   FABOS_DATA_DIR=C:\FabVex\Data
+# The entry point loads the private environment and starts the current FastAPI
+# application with one Uvicorn worker. Keep the API bound to 127.0.0.1; Caddy
+# is the only public entry point.
 #
-# Configure the service to restart automatically on failure. Run the service
-# under a dedicated Windows account with read/write access to FABOS_DATA_DIR.
+# Do not use the legacy fabos_api.server WSGI entry point for the storefront
+# production service because the current FastAPI surface contains the complete
+# customer upload, checkout, and administrator route set.
