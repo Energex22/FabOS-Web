@@ -54,6 +54,13 @@ New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $apiStdout = Join-Path $logDir "fabos-api.stdout.log"
 $apiStderr = Join-Path $logDir "fabos-api.stderr.log"
 
+Write-Host "Running FabOS production preflight..."
+$preflight = & $pythonExe -m fabos_core.cli production-check 2>&1
+$preflight | ForEach-Object { Write-Host $_ }
+if ($LASTEXITCODE -ne 0) {
+    throw "FabOS production preflight failed. Complete the required configuration before starting the production stack."
+}
+
 Write-Host "Starting FabOS API on 127.0.0.1:8000..."
 $api = Start-Process -FilePath $pythonExe -ArgumentList "-m","fabos_api.server" -WorkingDirectory $FabOSDir -PassThru -WindowStyle Hidden -RedirectStandardOutput $apiStdout -RedirectStandardError $apiStderr
 
