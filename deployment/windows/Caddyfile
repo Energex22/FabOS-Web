@@ -23,6 +23,9 @@ fabvex.duckdns.org {
     }
 
     handle /api/* {
+        # Caddy is the trusted edge; replace client-supplied forwarding identity.
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Real-IP {remote_host}
         reverse_proxy 127.0.0.1:8000
     }
 
