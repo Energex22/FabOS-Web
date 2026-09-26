@@ -62,7 +62,11 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Starting FabOS API on 127.0.0.1:8000..."
-$api = Start-Process -FilePath $pythonExe -ArgumentList "-m","fabos_api.server" -WorkingDirectory $FabOSDir -PassThru -WindowStyle Hidden -RedirectStandardOutput $apiStdout -RedirectStandardError $apiStderr
+$apiEntryPoint = Join-Path $FabOSDir "deployment\windows\run_api_service.py"
+Require-Path $apiEntryPoint "FabOS Windows FastAPI service entry point"
+$apiArguments = @($apiEntryPoint, "--host", "127.0.0.1", "--port", "8000", "--threads", "8", "--data-dir", $env:FABOS_DATA_DIR)
+if (Test-Path -LiteralPath $envFile) { $apiArguments += @("--env-file", $envFile) }
+$api = Start-Process -FilePath $pythonExe -ArgumentList $apiArguments -WorkingDirectory $FabOSDir -PassThru -WindowStyle Hidden -RedirectStandardOutput $apiStdout -RedirectStandardError $apiStderr
 
 $healthy = $false
 for ($attempt = 1; $attempt -le 15; $attempt++) {
