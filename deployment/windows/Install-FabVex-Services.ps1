@@ -87,6 +87,17 @@ if (-not (Test-Path -LiteralPath $pythonExe)) {
 Write-Host "Validating Caddy..."
 Run-Native $caddyExe @("validate","--config",$caddyFile)
 
+# Refuse to install a public production boundary until the persistent data,
+# owner, Stripe, host/CORS, and backup requirements pass preflight. Create a
+# fresh backup first so a newly initialized installation has a verified restore
+# point before its first service start.
+$env:FABOS_DATA_DIR = $DataDir
+if ($EnvFile) { $env:FABOS_ENV_FILE = $EnvFile }
+Write-Host "Creating initial production backup..."
+Run-Native $pythonExe @("-m","fabos_core.cli","backup")
+Write-Host "Running FabOS production preflight..."
+Run-Native $pythonExe @("-m","fabos_core.cli","production-check")
+
 foreach ($name in @($apiService, $caddyService)) {
     if (Get-Service -Name $name -ErrorAction SilentlyContinue) {
         Stop-Service -Name $name -Force -ErrorAction SilentlyContinue
