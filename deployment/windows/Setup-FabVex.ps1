@@ -36,7 +36,7 @@ $Domain = Prompt-Value "Public hostname" $Domain
 
 Require-Path $FabOSDir "FabOS directory"
 Require-Path $FabOSWebDir "FabOS-Web directory"
-Require-Path (Join-Path $FabOSDir "fabos_api\server.py") "FabOS API"
+Require-Path (Join-Path $FabOSDir "deployment\windows\run_api_service.py") "FabOS Windows FastAPI service entry point"
 Require-Path (Join-Path $FabOSWebDir "package.json") "FabOS-Web package.json"
 Require-Path $CaddyDir "Caddy/server directory"
 Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
