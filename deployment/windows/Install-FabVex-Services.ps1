@@ -50,7 +50,7 @@ if ($Remove) {
 }
 
 Require-Path $FabOSDir "FabOS directory"
-Require-Path (Join-Path $FabOSDir "fabos_api\server.py") "FabOS API server"
+Require-Path (Join-Path $FabOSDir "deployment\windows\run_api_service.py") "FabOS Windows FastAPI service entry point"
 Require-Path $CaddyDir "Caddy directory"
 Require-Path (Join-Path $FabOSWebDir "dist") "FabOS-Web built storefront"
 Require-Path (Join-Path $CaddyDir "caddy.exe") "Caddy executable"
