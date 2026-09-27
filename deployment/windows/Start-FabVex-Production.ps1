@@ -25,7 +25,7 @@ function Require-Path($Path, $Label) {
 }
 
 Require-Path $FabOSDir "FabOS directory"
-Require-Path (Join-Path $FabOSDir "fabos_api\server.py") "FabOS API server"
+Require-Path (Join-Path $FabOSDir "deployment\windows\run_api_service.py") "FabOS Windows FastAPI service entry point"
 Require-Path $FabOSWebDir "FabOS-Web directory"
 Require-Path (Join-Path $FabOSWebDir "dist") "Production storefront build"
 Require-Path (Join-Path $CaddyDir "Caddyfile") "Caddyfile"
