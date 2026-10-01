@@ -98,7 +98,7 @@ export const customerApi={
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
  createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
  generateCad:generateCustomerCad,
- analyzeCadReference,
+ analyzeCadReference:analyzeCustomerCadReference,
  cadCapabilities:getCustomerCadCapabilities
 }
 export {API_BASE,AUTH_TOKEN_KEY}
