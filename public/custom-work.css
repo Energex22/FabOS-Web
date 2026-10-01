@@ -5,3 +5,8 @@
 .cw-cad-reference strong{font-size:15px}
 .cw-cad-reference small{line-height:1.5}
 .cw-cad-reference input[type=file]{width:100%;padding:10px;border:1px dashed rgba(20,80,55,.25);border-radius:12px;background:#fff}
+
+
+.cw-cad-revise{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0}
+.cw-cad-revise input{min-width:0}
+@media (max-width:700px){.cw-cad-revise{grid-template-columns:1fr}}
