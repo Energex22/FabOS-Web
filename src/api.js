@@ -64,6 +64,9 @@ export async function createPublicQuoteWithFile(payload,file){
  return multipartRequest('/api/v1/quote-requests/upload',formData)
 }
 
+export async function generateCustomerCad(payload){return request('/api/v1/customer/cad/generate',{method:'POST',body:JSON.stringify(payload)})}
+export async function getCustomerCadCapabilities(){return request('/api/v1/customer/cad/capabilities')}
+
 export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token)setToken(data.token);return data}
 export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
 export async function runOperationsAutomation(){return request('/api/v1/admin/operations/automation/tick',{method:'POST'})}
@@ -86,6 +89,8 @@ export const customerApi={
  orders:()=>request('/api/v1/customer/orders'),
  order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
- createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'})
+ createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
+ generateCad:generateCustomerCad,
+ cadCapabilities:getCustomerCadCapabilities
 }
 export {API_BASE,AUTH_TOKEN_KEY}
