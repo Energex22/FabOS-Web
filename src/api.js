@@ -72,6 +72,7 @@ export async function analyzeCustomerCadReference(files,referenceNote=''){
 }
 
 export async function generateCustomerCad(payload){return request('/api/v1/customer/cad/generate',{method:'POST',body:JSON.stringify(payload)})}
+export async function getCustomerCadJobs(limit=50){return request('/api/v1/customer/cad/jobs?limit='+encodeURIComponent(limit))}
 export async function getCustomerCadCapabilities(){return request('/api/v1/customer/cad/capabilities')}
 export async function reviseCustomerCad(jobId,instruction,outputFormats=['stl','step']){
  return request('/api/v1/customer/cad/jobs/'+encodeURIComponent(jobId)+'/revise',{method:'POST',body:JSON.stringify({instruction,output_formats:outputFormats})})
@@ -101,6 +102,7 @@ export const customerApi={
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
  createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
  generateCad:generateCustomerCad,
+ cadJobs:getCustomerCadJobs,
  analyzeCadReference:analyzeCustomerCadReference,
  cadCapabilities:getCustomerCadCapabilities,
  reviseCad:reviseCustomerCad
