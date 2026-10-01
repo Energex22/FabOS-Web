@@ -64,6 +64,13 @@ export async function createPublicQuoteWithFile(payload,file){
  return multipartRequest('/api/v1/quote-requests/upload',formData)
 }
 
+export async function analyzeCustomerCadReference(files,referenceNote=''){
+ const formData=new FormData()
+ formData.append('reference_note',referenceNote||'')
+ ;files.slice(0,4).forEach(file=>formData.append('files',file,file.name))
+ return multipartRequest('/api/v1/customer/cad/analyze-reference',formData)
+}
+
 export async function generateCustomerCad(payload){return request('/api/v1/customer/cad/generate',{method:'POST',body:JSON.stringify(payload)})}
 export async function getCustomerCadCapabilities(){return request('/api/v1/customer/cad/capabilities')}
 
@@ -91,6 +98,7 @@ export const customerApi={
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
  createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
  generateCad:generateCustomerCad,
+ analyzeCadReference,
  cadCapabilities:getCustomerCadCapabilities
 }
 export {API_BASE,AUTH_TOKEN_KEY}
