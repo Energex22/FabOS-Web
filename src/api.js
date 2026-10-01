@@ -73,6 +73,9 @@ export async function analyzeCustomerCadReference(files,referenceNote=''){
 
 export async function generateCustomerCad(payload){return request('/api/v1/customer/cad/generate',{method:'POST',body:JSON.stringify(payload)})}
 export async function getCustomerCadCapabilities(){return request('/api/v1/customer/cad/capabilities')}
+export async function reviseCustomerCad(jobId,instruction,outputFormats=['stl','step']){
+ return request('/api/v1/customer/cad/jobs/'+encodeURIComponent(jobId)+'/revise',{method:'POST',body:JSON.stringify({instruction,output_formats:outputFormats})})
+}
 
 export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token)setToken(data.token);return data}
 export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
@@ -99,6 +102,7 @@ export const customerApi={
  createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
  generateCad:generateCustomerCad,
  analyzeCadReference:analyzeCustomerCadReference,
- cadCapabilities:getCustomerCadCapabilities
+ cadCapabilities:getCustomerCadCapabilities,
+ reviseCad:reviseCustomerCad
 }
 export {API_BASE,AUTH_TOKEN_KEY}
