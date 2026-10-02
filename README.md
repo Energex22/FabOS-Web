@@ -66,7 +66,7 @@ The customer frontend is now connected to the live FabOS API boundary rather tha
 
 - Product catalog, product details, categories, variants, and published availability come from FabOS.
 - Multi-item cart state is retained locally only as a convenience until checkout; final pricing and eligibility are revalidated by FabOS.
-- Customer registration, login, logout, profile, quotes, orders, and payment-session creation use the backend.
+- Customer registration, login, logout, profile, quotes, orders, quote acceptance/decline, and payment-session creation use the backend. Quote acceptance is server-authoritative and requires the quote to have been sent by FABVEX; customer accounts cannot set prices, statuses, customer IDs, or production state.
 - Custom-work requests can upload STL, 3MF, OBJ, STEP/STP files up to 25 MB.
 - Checkout creates the server-side order first and then starts the configured payment session.
 - Customer order pages expose only customer-safe progress and fulfillment information.
@@ -75,7 +75,7 @@ The frontend still requires the FabOS API to be running and requires a configure
 
 ## Backend alignment
 
-The backend already has dedicated account/authentication, customer, quote, order, fulfillment, product, and customer-update services. The customer API should call those existing service boundaries rather than creating a second business-logic implementation in the web project.
+The backend already has dedicated account/authentication, customer, quote, order, fulfillment, product, and customer-update services. Administrator-only quote review, customer creation, and production-start routes are consumed by the protected FabOS dashboard; the public customer portal receives only customer-scoped data. The customer API should call those existing service boundaries rather than creating a second business-logic implementation in the web project.
 
 The backend's customer ownership methods must remain authoritative for customer quote/order access. Customer-safe order statuses should be translated at the API boundary so internal workflow states are not exposed directly to customers.
 
