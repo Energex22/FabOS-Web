@@ -1,96 +1,39 @@
 import {authHeaders,clearToken,getToken,setToken,AUTH_TOKEN_KEY} from './auth.js'
 const configuredApiBase=import.meta.env?.VITE_API_URL||import.meta.env?.VITE_API_BASE_URL||''
 const API_BASE=(configuredApiBase||'/api').replace(/\/$/,'')
-
-function apiUrl(path){
- const normalized=String(path||'').startsWith('/')?String(path):`/${path}`
- if(API_BASE.endsWith('/api') && normalized.startsWith('/api/'))return `${API_BASE}${normalized.slice(4)}`
- if(API_BASE==='/' || API_BASE==='')return normalized
- return `${API_BASE}${normalized}`
-}
-function publicError(message,fallback){
- const detail=typeof message==='string'?message:''
- if(!detail)return fallback
- return detail.replace(/https?:\/\/[^\s/]+(?::\d+)?/gi,'the service')
-}
-
-async function request(path,options={}){
- let response
- try{
-  response=await fetch(apiUrl(path),{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})
- }catch(err){
-  throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)
- }
- let data=null
- try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
- return data
-}
-
-async function multipartRequest(path,formData){
- let response
- try{response=await fetch(apiUrl(path),{method:'POST',headers:{...authHeaders()},body:formData})}
- catch(err){throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)}
- let data=null
- try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
- return data
-}
-
-export async function getPublicCatalog(params={}){const search=new URLSearchParams();if(params.q)search.set('q',params.q);if(params.category&&params.category!=='All')search.set('category',params.category);if(params.sort)search.set('sort',params.sort);if(params.desc)search.set('desc','1');const suffix=search.toString()?`?${search.toString()}`:'';const data=await request(`/api/v1/catalog${suffix}`);return data.products||[]}
-export async function getPublicProduct(productId){return request(`/api/v1/catalog/${encodeURIComponent(productId)}`)}
+function apiUrl(path){const normalized=String(path||'').startsWith('/')?String(path):'/'+path;if(API_BASE.endsWith('/api')&&normalized.startsWith('/api/'))return API_BASE+normalized.slice(4);if(API_BASE==='/'||API_BASE==='')return normalized;return API_BASE+normalized}
+function publicError(message,fallback){const detail=typeof message==='string'?message:'';if(!detail)return fallback;return detail.replace(/https?:\/\/[^\s/]+(?::\d+)?/gi,'the service')}
+async function request(path,options={}){let response;try{response=await fetch(apiUrl(path),{headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})},...options})}catch(err){throw new Error('Unable to reach the Fabvex service. '+publicError(err?.message,'Network request failed'))}let data=null;try{data=await response.json()}catch(_){data=null}if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`));return data}
+async function multipartRequest(path,formData){let response;try{response=await fetch(apiUrl(path),{method:'POST',headers:{...authHeaders()},body:formData})}catch(err){throw new Error('Unable to reach the Fabvex service. '+publicError(err?.message,'Network request failed'))}let data=null;try{data=await response.json()}catch(_){data=null}if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`));return data}
+export async function getPublicCatalog(params={}){const search=new URLSearchParams();if(params.q)search.set('q',params.q);if(params.category&&params.category!=='All')search.set('category',params.category);if(params.sort)search.set('sort',params.sort);if(params.desc)search.set('desc','1');const suffix=search.toString()?'?'+search.toString():'';const data=await request('/api/v1/catalog'+suffix);return data.products||[]}
+export async function getPublicProduct(productId){return request('/api/v1/catalog/'+encodeURIComponent(productId))}
 export async function getCatalogCategories(){const data=await request('/api/v1/catalog/categories');return data.categories||[]}
-
-export function catalogImageUrl(image){
- if(!image)return ''
- const value=String(image.url||image.path||'').trim()
- if(!value)return ''
- if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value
- return apiUrl(value)
-}
+export function catalogImageUrl(image){if(!image)return '';const value=String(image.url||image.path||'').trim();if(!value)return '';if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value;return apiUrl(value)}
 export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token)setToken(data.token);return data}
 export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token)setToken(data.token);return data}
-export async function logoutCustomer(){const token=getToken();if(!token){clearToken();return null}try{return await request('/api/v1/auth/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}})}catch{return null}finally{clearToken()}}
-export async function createPublicQuoteWithFile(payload,file){
- const formData=new FormData()
- formData.append('name',payload.name)
- formData.append('email',payload.email)
- formData.append('idea',payload.project?.idea||'')
- formData.append('dimensions',payload.project?.dimensions||'')
- formData.append('material',payload.project?.material||'')
- formData.append('quantity',String(payload.project?.quantity||1))
- formData.append('notes',payload.project?.notes||'')
- formData.append('file',file,file.name)
- return multipartRequest('/api/v1/quote-requests/upload',formData)
-}
-
+export async function logoutCustomer(){const token=getToken();if(!token){clearToken();return null}try{return await request('/api/v1/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token}})}catch{return null}finally{clearToken()}}
+export async function createPublicQuoteWithFile(payload,file){const formData=new FormData();formData.append('name',payload.name);formData.append('email',payload.email);formData.append('idea',payload.project?.idea||'');formData.append('dimensions',payload.project?.dimensions||'');formData.append('material',payload.project?.material||'');formData.append('quantity',String(payload.project?.quantity||1));formData.append('notes',payload.project?.notes||'');formData.append('file',file,file.name);return multipartRequest('/api/v1/quote-requests/upload',formData)}
 export async function generateCustomerCad(payload){return request('/api/v1/customer/cad/generate',{method:'POST',body:JSON.stringify(payload)})}
 export async function getCustomerCadCapabilities(){return request('/api/v1/customer/cad/capabilities')}
-
 export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token)setToken(data.token);return data}
 export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
 export async function runOperationsAutomation(){return request('/api/v1/admin/operations/automation/tick',{method:'POST'})}
-
+export async function getAdminQuotes(){const data=await request('/api/v1/admin/quotes');return data.quotes||[]}
+export async function getAdminQuote(id){return request('/api/v1/admin/quotes/'+encodeURIComponent(id))}
+export async function updateAdminQuote(id,payload){return request('/api/v1/admin/quotes/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify(payload)})}
+export async function acceptQuote(id){return request('/api/v1/customer/quotes/'+encodeURIComponent(id)+'/accept',{method:'POST'})}
+export async function declineQuote(id){return request('/api/v1/customer/quotes/'+encodeURIComponent(id)+'/decline',{method:'POST'})}
+export async function getAdminCustomers(){const data=await request('/api/v1/admin/customers');return data.customers||[]}
+export async function createAdminCustomer(payload){return request('/api/v1/admin/customers',{method:'POST',body:JSON.stringify(payload)})}
+export async function startAdminProduction(orderId){return request('/api/v1/admin/orders/'+encodeURIComponent(orderId)+'/start-production',{method:'POST'})}
+export async function getCustomerProofs(){const data=await request('/api/v1/customer/proofs');return data.proofs||[]}
+export async function getCustomerProof(id){return request('/api/v1/customer/proofs/'+encodeURIComponent(id))}
+export async function customerProofAction(id,action,comment=''){return request('/api/v1/customer/proofs/'+encodeURIComponent(id)+'/'+action,{method:'POST',body:JSON.stringify({comment})})}
+export async function getCustomerProofFile(id){const response=await fetch(apiUrl('/api/v1/customer/proofs/'+encodeURIComponent(id)+'/file'),{headers:authHeaders()});if(!response.ok)throw new Error('Proof file is unavailable.');return response.blob()}
+export async function getAdminProofs(quoteId){const data=await request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId)+'/proofs');return data.proofs||[]}
+export async function createAdminProof(quoteId,payload={}){return request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId)+'/proofs',{method:'POST',body:JSON.stringify(payload)})}
+export async function uploadAdminProof(quoteId,file,notes=''){const formData=new FormData();formData.append('notes',notes);formData.append('file',file,file.name);return multipartRequest('/api/v1/admin/quotes/'+encodeURIComponent(quoteId)+'/proofs/upload',formData)}
+export async function sendAdminProof(proofId,comment=''){return request('/api/v1/admin/proofs/'+encodeURIComponent(proofId)+'/send',{method:'POST',body:JSON.stringify({comment})})}
 export const customerApi={
- health:()=>request('/api/v1/health'),
- catalog:getPublicCatalog,
- product:getPublicProduct,
- categories:getCatalogCategories,
- login:loginCustomer,
- register:registerCustomer,
- logout:logoutCustomer,
- me:()=>request('/api/v1/customer/me'),
- updateProfile:(payload)=>request('/api/v1/customer/me',{method:'PATCH',body:JSON.stringify(payload)}),
- quotes:()=>request('/api/v1/customer/quotes'),
- quote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}`),
- createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
- createPublicQuote:(payload)=>request('/api/v1/quote-requests',{method:'POST',body:JSON.stringify(payload)}),
- createPublicQuoteWithFile,
- orders:()=>request('/api/v1/customer/orders'),
- order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
- createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
- createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
- generateCad:generateCustomerCad,
- cadCapabilities:getCustomerCadCapabilities
-}
+ health:()=>request('/api/v1/health'),catalog:getPublicCatalog,product:getPublicProduct,categories:getCatalogCategories,login:loginCustomer,register:registerCustomer,logout:logoutCustomer,me:()=>request('/api/v1/customer/me'),updateProfile:payload=>request('/api/v1/customer/me',{method:'PATCH',body:JSON.stringify(payload)}),quotes:()=>request('/api/v1/customer/quotes'),quote:quoteId=>request('/api/v1/customer/quotes/'+encodeURIComponent(quoteId)),createQuote:payload=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),createPublicQuote:payload=>request('/api/v1/quote-requests',{method:'POST',body:JSON.stringify(payload)}),createPublicQuoteWithFile,acceptQuote,declineQuote,getProofs:getCustomerProofs,proof:getCustomerProof,proofAction:customerProofAction,proofFile:getCustomerProofFile,orders:()=>request('/api/v1/customer/orders'),order:orderId=>request('/api/v1/customer/orders/'+encodeURIComponent(orderId)),createOrder:payload=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),createPaymentSession:orderId=>request('/api/v1/customer/orders/'+encodeURIComponent(orderId)+'/payment-session',{method:'POST'}),generateCad:generateCustomerCad,cadCapabilities:getCustomerCadCapabilities}
 export {API_BASE,AUTH_TOKEN_KEY}
