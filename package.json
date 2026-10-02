@@ -14,8 +14,7 @@
     "vite": "8.3.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "lucide-react": "1.47.0",
-    "three": "^0.180.0"
+    "lucide-react": "1.47.0"
   },
   "devDependencies": {},
   "engines": {
