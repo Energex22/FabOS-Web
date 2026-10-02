@@ -10,3 +10,5 @@
 .cw-cad-revise{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0}
 .cw-cad-revise input{min-width:0}
 @media (max-width:700px){.cw-cad-revise{grid-template-columns:1fr}}
+
+.cw-cad-preflight{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}.cw-cad-preflight select{min-height:42px;max-width:100%;padding:0 12px;border:1px solid rgba(0,0,0,.14);border-radius:10px;background:#fff;color:inherit}.cw-cad-preflight small{width:100%;line-height:1.5;color:#666}
