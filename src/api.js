@@ -75,6 +75,7 @@ export async function generateCustomerCad(payload){return request('/api/v1/custo
 export async function getCustomerCadJobs(limit=50){return request('/api/v1/customer/cad/jobs?limit='+encodeURIComponent(limit))}
 export async function getCustomerCadCapabilities(){return request('/api/v1/customer/cad/capabilities')}
 export async function getCustomerCadPrinters(){return request('/api/v1/customer/cad/printers')}
+export async function preflightCustomerCad(payload){return request('/api/v1/customer/cad/preflight',{method:'POST',body:JSON.stringify(payload)})}
 export async function reviseCustomerCad(jobId,instruction,outputFormats=['stl','step','3mf']){
  return request('/api/v1/customer/cad/jobs/'+encodeURIComponent(jobId)+'/revise',{method:'POST',body:JSON.stringify({instruction,output_formats:outputFormats})})
 }
@@ -107,6 +108,7 @@ export const customerApi={
  analyzeCadReference:analyzeCustomerCadReference,
  cadCapabilities:getCustomerCadCapabilities,
  cadPrinters:getCustomerCadPrinters,
+ preflightCad:preflightCustomerCad,
  reviseCad:reviseCustomerCad
 }
 export {API_BASE,AUTH_TOKEN_KEY}
