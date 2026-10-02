@@ -12,3 +12,5 @@
 @media (max-width:700px){.cw-cad-revise{grid-template-columns:1fr}}
 
 .cw-cad-preflight{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}.cw-cad-preflight select{min-height:42px;max-width:100%;padding:0 12px;border:1px solid rgba(0,0,0,.14);border-radius:10px;background:#fff;color:inherit}.cw-cad-preflight small{width:100%;line-height:1.5;color:#666}
+
+.cw-cad-preview{width:100%;border:1px solid rgba(20,80,55,.18);border-radius:14px;overflow:hidden;background:#f4f8e4}.cw-cad-preview-canvas{width:100%;height:320px}.cw-cad-preview>span{display:block;padding:8px 12px;font-size:9px;color:#666;letter-spacing:.04em}.cw-cad-preview .cw-error{display:block;padding:8px 12px}
