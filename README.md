@@ -6,6 +6,62 @@ It provides the customer storefront, custom-work request experience, customer ac
 
 [FabOS](https://github.com/Energex22/FabOS) is the backend/business operating system. FabOS-Web must not become a second implementation of pricing, customer ownership, payment state, production state, or fulfillment rules.
 
+## Visual overview
+
+The diagrams below show the role of FabOS-Web without hiding the important boundary: the browser provides the experience, while FabOS owns the business decisions.
+
+### What the web application is
+
+```mermaid
+flowchart TB
+    Visitor[Customer / Visitor] --> Store[FabOS-Web]
+    Store --> Catalog[Catalog]
+    Store --> Custom[Custom Work]
+    Store --> Account[Account]
+    Store --> Checkout[Checkout]
+    Store --> Orders[Orders]
+    Store --> Admin[Protected Admin UI]
+    Catalog --> API[FabOS API]
+    Custom --> API
+    Account --> API
+    Checkout --> API
+    Orders --> API
+    Admin --> API
+    API --> Core[FabOS Business Engine]
+```
+
+### A normal purchase
+
+```mermaid
+flowchart LR
+    S[Shop] --> P[Product]
+    P --> V[Variant]
+    V --> C[Cart]
+    C --> CH[Checkout]
+    CH --> API[FabOS]
+    API --> T[Authoritative totals]
+    T --> PAY[Payment Session]
+    PAY --> W[Payment Provider]
+    W --> H[Webhook]
+    H --> O[Customer Order]
+```
+
+### Custom work
+
+```mermaid
+flowchart LR
+    R[Project Request] --> U[Model / Reference Upload]
+    U --> Q[Quote]
+    Q --> D[Design Version]
+    D --> PR[Proof]
+    PR --> A{Customer Approval}
+    A -->|Approve| O[Order]
+    A -->|Changes| D
+    O --> M[Manufacturing]
+```
+
+For exact UI screenshots, the best source is the running FabOS-Web application itself. We can add those after a stable build is available; unlike architecture diagrams, screenshots should represent a specific released UI and therefore need to be refreshed when the interface changes.
+
 ## What FabOS-Web provides
 
 | Area | Current role |
