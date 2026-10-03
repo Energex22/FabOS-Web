@@ -227,11 +227,13 @@ See [docs/FABOS_API_CONTRACT.md](docs/FABOS_API_CONTRACT.md) and FabOS [docs/PAY
 
 The frontend currently uses:
 
-- React 19;
-- Vite 8;
-- Lucide React;
+- React 19.3.x;
+- Vite 8.3.x;
+- Lucide React 1.47.x;
 - Node.js 24.x;
 - npm 11.x.
+
+`package.json` currently reports frontend package version `0.1.0`; this is independent of the FabOS application version and should only be changed as part of a coordinated release/versioning decision.
 
 The backend is FabOS, which provides the business/API layer.
 
@@ -407,6 +409,25 @@ FabOS-Web/
 ~~~
 
 The repository contains additional modules and deployment files beyond this simplified view.
+
+## First-run / production setup
+
+For the current Windows production path, FabOS should be initialized and configured before the public storefront is exposed. The backend setup flow includes owner creation, payment configuration, backup creation/verification, and production preflight checks.
+
+Recommended order:
+
+1. Initialize the FabOS data directory.
+2. Create the initial owner/admin and change any bootstrap credentials.
+3. Configure products, Ready-to-Print eligibility, tax and shipping.
+4. Configure Stripe test-mode credentials and webhook signing secret.
+5. Configure printers/OctoPrint only after local printing is known-good.
+6. Build FabOS-Web with `VITE_API_URL=/api`.
+7. Start the local FastAPI service behind Caddy.
+8. Run the customer acceptance and recovery tests.
+9. Verify a backup and test restore before live orders.
+10. Switch to live payment credentials only after the test flow passes.
+
+See FabOS [production readiness](https://github.com/Energex22/FabOS/blob/main/docs/PRODUCTION_READINESS.md) and [Windows deployment](deployment/windows/README.md).
 
 ## Testing and verification
 
