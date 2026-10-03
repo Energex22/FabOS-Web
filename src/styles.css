@@ -76,3 +76,5 @@ footer p,footer small{color:#87938e}
 /* Brand marks across the supporting customer flows */
 .account-brand,.checkout-brand,.orders-brand,.order-brand,.product-brand,.shop-brand,.cw-brand{font-family:Archivo,Urbanist,sans-serif;font-style:italic;font-weight:800;letter-spacing:-.04em}
 .account-brand img,.checkout-brand img,.orders-brand img,.order-brand img,.product-brand img,.shop-brand img,.cw-mark img{object-fit:contain}
+
+.account-nav-link{font:800 11px/1 Urbanist,sans-serif;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:inherit;padding:9px 11px;border:1px solid rgba(120,170,145,.28);border-radius:9px}.theme-toggle{border:1px solid rgba(120,170,145,.28);background:transparent;color:inherit;border-radius:9px;width:36px;height:36px;cursor:pointer;font-size:18px}.account-nav-link:hover,.theme-toggle:hover{border-color:#70d891;color:#70d891}@media(max-width:700px){.account-nav-link{font-size:10px;padding:8px}.theme-toggle{width:34px;height:34px}}
