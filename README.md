@@ -78,27 +78,19 @@ For exact UI screenshots, the best source is the running FabOS-Web application i
 
 ## Architecture
 
-~~~text
-                         FABVEX
-                           |
-                  +--------v---------+
-                  |    FabOS-Web     |
-                  | Storefront       |
-                  | Customer Portal  |
-                  | Admin Web UI     |
-                  +--------+---------+
-                           |
-                      HTTPS / JSON
-                           |
-                           v
-                  +------------------+
-                  |      FabOS       |
-                  | Business Rules   |
-                  | Database         |
-                  | Design Vault     |
-                  | Payments         |
-                  | Production       |
-                  +------------------+
+~~~mermaid
+flowchart TB
+    Brand[FABVEX] --> Web[FabOS-Web]
+    Web --> Storefront[Storefront]
+    Web --> Portal[Customer Portal]
+    Web --> Admin[Admin Web UI]
+    Web --> HTTPS[HTTPS / JSON]
+    HTTPS --> FabOS[FabOS]
+    FabOS --> Rules[Business Rules]
+    FabOS --> DB[Database]
+    FabOS --> Vault[Design Vault]
+    FabOS --> Payments[Payments]
+    FabOS --> Production[Production]
 ~~~
 
 ### Source of truth
@@ -122,50 +114,32 @@ The browser may retain convenience state such as a cart, but FabOS revalidates t
 
 ### Standard product order
 
-~~~text
-Shop
-  |
-Product
-  |
-Variant / configuration
-  |
-Cart
-  |
-Checkout
-  |
-FabOS creates/recalculates order
-  |
-Payment session
-  |
-Payment provider
-  |
-FabOS webhook/reconciliation
-  |
-Customer order status
+~~~mermaid
+flowchart TB
+    Shop[Shop] --> Product[Product]
+    Product --> Variant[Variant / configuration]
+    Variant --> Cart[Cart]
+    Cart --> Checkout[Checkout]
+    Checkout --> FabOS[FabOS creates / recalculates order]
+    FabOS --> Session[Payment session]
+    Session --> Provider[Payment provider]
+    Provider --> Webhook[FabOS webhook / reconciliation]
+    Webhook --> Status[Customer order status]
 ~~~
 
 ### Custom work
 
-~~~text
-Custom Work
-    |
-Project details
-    |
-Optional model/reference upload
-    |
-FabOS quote
-    |
-Design Vault
-    |
-Quote / pricing
-    |
-Design proof
-    |
-Customer approval
-    |
-Order
-    |
-Production
+~~~mermaid
+flowchart TB
+    Custom[Custom Work] --> Details[Project details]
+    Details --> Upload[Optional model / reference upload]
+    Upload --> Quote[FabOS quote]
+    Quote --> Vault[Design Vault]
+    Vault --> Pricing[Quote / pricing]
+    Pricing --> Proof[Design proof]
+    Proof --> Approval[Customer approval]
+    Approval --> Order[Order]
+    Order --> Production[Production]
 ~~~
 
 ### Customer design proof
@@ -357,19 +331,12 @@ The Vite build produces the web assets used by the Caddy deployment.
 
 The supported production model keeps FabOS private and places Caddy in front of both the static frontend and API:
 
-~~~text
-Internet
-   |
- HTTPS
-   |
-   v
-+---------+
-|  Caddy  |
-+----+----+
-     |
-     +---- /       -> FabOS-Web static files
-     |
-     +---- /api/*  -> FabOS on 127.0.0.1:8000
+~~~mermaid
+flowchart TB
+    Internet[Internet] --> HTTPS[HTTPS]
+    HTTPS --> Caddy[Caddy]
+    Caddy --> Web["/ -> FabOS-Web static files"]
+    Caddy --> API["/api/* -> FabOS on 127.0.0.1:8000"]
 ~~~
 
 This gives the customer browser a single origin.
