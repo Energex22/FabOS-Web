@@ -97,6 +97,9 @@ export async function createAdminCustomer(payload){return request('/api/v1/admin
 export async function getAdminQuotes(params={}){const q=new URLSearchParams();if(params.q)q.set('q',params.q);if(params.status)q.set('status',params.status);if(params.group)q.set('group',params.group);const suffix=q.toString()?'?'+q.toString():'';return request('/api/v1/admin/quotes'+suffix)}
 export async function updateAdminQuote(quoteId,payload){return request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId),{method:'PUT',body:JSON.stringify(payload)})}
 export async function startAdminProduction(orderId){return request('/api/v1/admin/orders/'+encodeURIComponent(orderId)+'/start-production',{method:'POST'})}
+export async function adminPrinterPreflight(id){return request('/api/v1/admin/printers/'+encodeURIComponent(id)+'/preflight',{method:'POST'})}
+export async function adminPrinterPreheat(id,hotend,bed){return request('/api/v1/admin/printers/'+encodeURIComponent(id)+'/preheat',{method:'POST',body:JSON.stringify({hotend,bed})})}
+export async function adminPrinterAction(id,action){return request('/api/v1/admin/printers/'+encodeURIComponent(id)+'/'+action,{method:'POST'})}
 export async function getAdminDesigns(q=''){return request('/api/v1/admin/designs?q='+encodeURIComponent(q||''))}
 export async function getAdminDesign(designId){return request('/api/v1/admin/designs/'+encodeURIComponent(designId))}
 export async function getAdminQc(){return request('/api/v1/admin/qc')}

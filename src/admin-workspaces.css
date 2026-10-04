@@ -39,3 +39,5 @@
 .workspace-detail pre,.health-json{margin:0;max-height:420px;overflow:auto;white-space:pre-wrap;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
 
 .qc-checklist{display:grid;gap:10px}.qc-checklist label{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px}.qc-checklist input{margin-top:3px}.qc-checklist span{line-height:1.4}
+
+.printer-controls{display:flex;flex-wrap:wrap;gap:6px;min-width:320px}.printer-preheat{display:flex;flex-wrap:wrap;gap:6px;width:100%}.printer-preheat input{width:95px}.danger-button{border-color:#c44!important}.printer-result{margin-top:14px}
