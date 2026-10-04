@@ -1,0 +1,36 @@
+
+.workspace-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px;padding:10px;border:1px solid rgba(255,255,255,.08);background:rgba(8,14,12,.72);border-radius:16px;position:sticky;top:10px;z-index:5;backdrop-filter:blur(12px)}
+.workspace-nav button{border:1px solid transparent;background:transparent;color:inherit;padding:9px 13px;border-radius:10px;font-weight:700;cursor:pointer}
+.workspace-nav button:hover{background:rgba(255,255,255,.05)}
+.workspace-nav button.active{background:rgba(72,205,116,.14);border-color:rgba(72,205,116,.35);color:#8df0ae}
+.workspace{margin-top:24px;padding:24px;border:1px solid rgba(255,255,255,.08);border-radius:20px;background:rgba(10,17,14,.86);box-shadow:0 18px 50px rgba(0,0,0,.16)}
+.workspace-head{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:20px}
+.workspace-head h2{margin:3px 0 5px}
+.workspace-head p:not(.admin-kicker){margin:0;color:rgba(255,255,255,.62);max-width:760px}
+.workspace-toolbar,.inline-form{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.workspace-toolbar input,.inline-form input,.settings-editor input,.settings-editor select,.settings-editor textarea,.chat-form input{min-height:40px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:inherit;padding:9px 12px}
+.workspace-toolbar input{flex:1;min-width:220px}
+.inline-form input{flex:1;min-width:170px}
+.workspace-error{padding:12px 14px;margin:12px 0;border:1px solid rgba(255,100,100,.28);border-radius:10px;background:rgba(255,70,70,.08);color:#ffb6b6}
+.workspace-empty{padding:28px;text-align:center;color:rgba(255,255,255,.55);border:1px dashed rgba(255,255,255,.1);border-radius:12px}
+.workspace-table-wrap{overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.workspace-table{width:100%;border-collapse:collapse;min-width:680px}
+.workspace-table th,.workspace-table td{padding:12px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
+.workspace-table th{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.workspace-table tbody tr:last-child td{border-bottom:0}
+.workspace-table small{display:block;color:rgba(255,255,255,.46);margin-top:3px}
+.workspace-table code{font-size:11px;color:rgba(255,255,255,.45)}
+.table-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.04);color:inherit;border-radius:8px;padding:7px 10px;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}
+.table-button:hover{background:rgba(72,205,116,.12);border-color:rgba(72,205,116,.3)}
+.button-row{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:4px 8px;font-size:11px;color:rgba(255,255,255,.72);background:rgba(255,255,255,.04)}
+.workspace-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.mini-card{padding:15px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.mini-card strong{display:block;font-size:22px}.mini-card span{display:block;margin-top:4px;color:rgba(255,255,255,.5);font-size:12px}
+.subsection{margin-top:22px}.subsection h3{margin:0 0 10px;font-size:14px}
+.settings-editor{display:grid;gap:14px;max-width:760px}.settings-editor label{display:grid;gap:7px;color:rgba(255,255,255,.65);font-size:12px;font-weight:700}.settings-editor textarea{resize:vertical;font:inherit}
+.ai-status{display:flex;gap:10px;align-items:center;margin-bottom:15px;color:rgba(255,255,255,.55)}.status-good{color:#8df0ae}.status-warn{color:#ffd28a}
+.chat-history{min-height:260px;max-height:480px;overflow:auto;display:grid;gap:10px;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(0,0,0,.12)}
+.chat-message{max-width:80%;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.05)}.chat-message.user{margin-left:auto;background:rgba(72,205,116,.1)}.chat-message strong{font-size:11px;text-transform:uppercase;letter-spacing:.08em}.chat-message p{margin:5px 0 0;white-space:pre-wrap}
+.chat-form{display:flex;gap:10px;margin-top:10px}.chat-form input{flex:1}.tag-list{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}.workspace-actions{margin-top:14px}
+@media(max-width:760px){.workspace{padding:16px}.workspace-head{flex-direction:column}.workspace-nav{top:4px}.chat-form{flex-direction:column}.workspace-table{min-width:620px}}
