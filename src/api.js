@@ -84,6 +84,25 @@ export async function loginTeam(identifier,password){const data=await request('/
 export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
 export async function runOperationsAutomation(){return request('/api/v1/admin/operations/automation/tick',{method:'POST'})}
 
+export async function getAdminCatalog(q=''){const data=await request('/api/v1/admin/catalog?q='+encodeURIComponent(q||''));return data}
+export async function updateAdminStorefront(productId,payload){return request('/api/v1/admin/catalog/'+encodeURIComponent(productId)+'/storefront',{method:'PATCH',body:JSON.stringify(payload)})}
+export async function getAdminCustomers(q=''){return request('/api/v1/admin/customers?q='+encodeURIComponent(q||''))}
+export async function createAdminCustomer(payload){return request('/api/v1/admin/customers',{method:'POST',body:JSON.stringify(payload)})}
+export async function getAdminQuotes(params={}){const q=new URLSearchParams();if(params.q)q.set('q',params.q);if(params.status)q.set('status',params.status);if(params.group)q.set('group',params.group);const suffix=q.toString()?'?'+q.toString():'';return request('/api/v1/admin/quotes'+suffix)}
+export async function updateAdminQuote(quoteId,payload){return request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId),{method:'PUT',body:JSON.stringify(payload)})}
+export async function startAdminProduction(orderId){return request('/api/v1/admin/orders/'+encodeURIComponent(orderId)+'/start-production',{method:'POST'})}
+export async function getAdminUsers(){return request('/api/v1/admin/users')}
+export async function getAdminPermissions(){return request('/api/v1/admin/permissions')}
+export async function getAdminSettings(){return request('/api/v1/admin/settings')}
+export async function updateAdminSetting(key,value){return request('/api/v1/admin/settings',{method:'PUT',body:JSON.stringify({key,value})})}
+export async function getAdminAiStatus(){return request('/api/v1/admin/ai/status')}
+export async function sendAdminAiMessage(message,context){return request('/api/v1/admin/ai/chat',{method:'POST',body:JSON.stringify({message,context})})}
+export async function getAdminMarketingDashboard(){return request('/api/v1/admin/marketing/dashboard')}
+export async function getAdminMarketingProviders(){return request('/api/v1/admin/marketing/providers')}
+export async function getAdminMarketingPosts(status,limit=100){const q=new URLSearchParams();if(status)q.set('status',status);q.set('limit',String(limit));return request('/api/v1/admin/marketing/posts?'+q.toString())}
+export async function approveAdminMarketingPost(postId){return request('/api/v1/admin/marketing/posts/'+encodeURIComponent(postId)+'/approve',{method:'POST'})}
+export async function queueAdminMarketingPosts(){return request('/api/v1/admin/marketing/posts/queue-due',{method:'POST'})}
+
 export const customerApi={
  health:()=>request('/api/v1/health'),
  catalog:getPublicCatalog,
