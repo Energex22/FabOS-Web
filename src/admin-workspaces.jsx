@@ -136,7 +136,7 @@ function QCWorkspace(){
 
 function Operations({dashboard,onRefresh,busy}){
  const [error,setError]=useState(''),[working,setWorking]=useState(null),[targets,setTargets]=useState({}),[probe,setProbe]=useState({})
- const run=async(key,fn)=>{setWorking(key);try{const d=await fn();if(d?.result)setProbe(p=>({...p,[key]:d.result});await onRefresh();setError('')}catch(e){setError(e.message)}finally{setWorking(null)}}
+ const run=async(key,fn)=>{setWorking(key);try{const d=await fn();if(d?.result)setProbe(p=>({...p,[key]:d.result}));await onRefresh();setError('')}catch(e){setError(e.message)}finally{setWorking(null)}}
  const start=async id=>run('order-'+id,()=>startAdminProduction(id))
  const preflight=id=>run('probe-'+id,()=>adminPrinterPreflight(id))
  const preheat=(id)=>run('heat-'+id,()=>adminPrinterPreheat(id,targets[id]?.hotend||null,targets[id]?.bed||null))
