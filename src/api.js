@@ -97,6 +97,12 @@ export async function createAdminCustomer(payload){return request('/api/v1/admin
 export async function getAdminQuotes(params={}){const q=new URLSearchParams();if(params.q)q.set('q',params.q);if(params.status)q.set('status',params.status);if(params.group)q.set('group',params.group);const suffix=q.toString()?'?'+q.toString():'';return request('/api/v1/admin/quotes'+suffix)}
 export async function updateAdminQuote(quoteId,payload){return request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId),{method:'PUT',body:JSON.stringify(payload)})}
 export async function startAdminProduction(orderId){return request('/api/v1/admin/orders/'+encodeURIComponent(orderId)+'/start-production',{method:'POST'})}
+export async function getAdminDesigns(q=''){return request('/api/v1/admin/designs?q='+encodeURIComponent(q||''))}
+export async function getAdminDesign(designId){return request('/api/v1/admin/designs/'+encodeURIComponent(designId))}
+export async function getAdminQc(){return request('/api/v1/admin/qc')}
+export async function getAdminQcDetail(inspectionId){return request('/api/v1/admin/qc/'+encodeURIComponent(inspectionId))}
+export async function updateAdminQc(inspectionId,payload){return request('/api/v1/admin/qc/'+encodeURIComponent(inspectionId),{method:'PUT',body:JSON.stringify(payload)})}
+export async function reconcileAdminQc(){return request('/api/v1/admin/qc/reconcile',{method:'POST'})}
 export async function getAdminUsers(){return request('/api/v1/admin/users')}
 export async function getAdminPermissions(){return request('/api/v1/admin/permissions')}
 export async function getAdminSettings(){return request('/api/v1/admin/settings')}
