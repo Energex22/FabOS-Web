@@ -1,7 +1,7 @@
 
 import React,{useEffect,useState} from 'react'
 import {Brain,RefreshCw,Save,Package,Factory,Store,Settings,Activity} from 'lucide-react'
-import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction} from './api.js'
+import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc} from './api.js'
 import './admin-workspaces.css'
 
 const money=c=>(Number(c||0)/100).toLocaleString(undefined,{style:'currency',currency:'USD'})
@@ -85,10 +85,59 @@ function Inventory({dashboard}){return <Shell kicker="MATERIALS" title="Inventor
 
 function QC({dashboard}){return <Shell kicker="QUALITY" title="Quality control" description="See quality inspections waiting for review before work moves downstream."><div className="workspace-cards"><div className="mini-card"><strong>{dashboard?.business?.pending_qc||0}</strong><span>Pending inspections</span></div><div className="mini-card"><strong>{dashboard?.production?.completed_jobs||0}</strong><span>Completed jobs</span></div><div className="mini-card"><strong>{dashboard?.production?.failed_jobs||0}</strong><span>Failed jobs</span></div></div><div className="workspace-empty">QC records are currently summarized by the operations API. The next QC pass can expose individual inspections, photos, disposition, and rework actions without duplicating the manufacturing rules in the web client.</div></Shell>}
 
+
+function DesignVault(){
+ const [data,setData]=useState(null),[q,setQ]=useState(''),[selected,setSelected]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const load=async()=>{setBusy(true);try{setData(await getAdminDesigns(q));setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
+ useEffect(()=>{load()},[])
+ const open=async id=>{setBusy(true);try{setSelected(await getAdminDesign(id));setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
+ return <Shell kicker="DESIGN VAULT" title="Digital designs" description="Browse customer and catalog designs, revisions, printable assets, and production history from the authoritative vault." onRefresh={load} busy={busy}>
+  <div className="workspace-toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search designs or SKU…"/><button className="admin-primary" onClick={load}>Search</button></div>
+  {error&&<div className="workspace-error">{error}</div>}
+  <Table rows={data?.designs||[]} columns={[
+   {key:'name',label:'Design',render:r=><div><strong>{r.name||r.id}</strong><small>{r.sku||'No SKU'} · {r.category||'Other'}</small></div>},
+   {key:'current_version',label:'Version',render:r=>'v'+(r.current_version||1)},
+   {key:'asset_count',label:'Assets'},
+   {key:'updated_at',label:'Updated',render:r=>date(r.updated_at)},
+   {key:'action',label:'Details',render:r=><button className="table-button" onClick={()=>open(r.id)}>View</button>}
+  ]}/>
+  {selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">DESIGN DETAIL</p><h3>{selected.design?.name||selected.design?.id}</h3><small>{selected.design?.id}</small></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div>
+   <div className="workspace-cards"><div className="mini-card"><strong>v{selected.design?.current_version||1}</strong><span>Current version</span></div><div className="mini-card"><strong>{selected.assets?.length||0}</strong><span>Assets</span></div><div className="mini-card"><strong>{selected.model?.piece_count||0}</strong><span>Complete-set pieces</span></div></div>
+   <div className="subsection"><h3>Assets</h3><Table rows={selected.assets||[]} columns={[{key:'original_name',label:'File'},{key:'kind',label:'Type'},{key:'version',label:'Version',render:r=>'v'+(r.version||'—')},{key:'bytes',label:'Size',render:r=>r.bytes?Math.round(Number(r.bytes)/1024)+' KB':'—'},{key:'is_primary',label:'Primary',render:r=>r.is_primary?'Yes':'—'}]}/></div>
+   <div className="subsection"><h3>Production history</h3><Table rows={selected.production_history||[]} columns={[{key:'status',label:'Status'},{key:'order_number',label:'Order'},{key:'printer_name',label:'Printer'},{key:'created_at',label:'Created',render:r=>date(r.created_at)}]}/></div>
+  </div>}
+ </Shell>
+}
+
+function QCWorkspace(){
+ const [data,setData]=useState(null),[selected,setSelected]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const load=async()=>{setBusy(true);try{setData(await getAdminQc());setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
+ useEffect(()=>{load()},[])
+ const open=async id=>{setBusy(true);try{const d=await getAdminQcDetail(id);const inspection=d.inspection||{};let items=[];try{items=JSON.parse(inspection.checklist_json||'[]')}catch{};setSelected({...inspection,checklist:inspection.checklist||items,notes:inspection.notes||''});setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
+ const save=async status=>{if(!selected)return;setBusy(true);try{await updateAdminQc(selected.id,{items:selected.checklist||[],notes:selected.notes||'',status});await open(selected.id);await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
+ const reconcile=async()=>{setBusy(true);try{await reconcileAdminQc();await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
+ return <Shell kicker="QUALITY" title="QC inspections" description="Review completed production inspections and record pass, rework, or pending disposition without duplicating manufacturing rules in the browser." onRefresh={load} busy={busy}>
+  <div className="button-row"><button className="admin-primary" onClick={reconcile} disabled={busy}>Reconcile inspections</button></div>
+  {error&&<div className="workspace-error">{error}</div>}
+  <Table rows={data?.inspections||[]} columns={[
+   {key:'product_name',label:'Job',render:r=><div><strong>{r.product_name||'Custom job'}</strong><small>{r.order_number||'—'} · {r.customer_name||'No customer'}</small></div>},
+   {key:'status',label:'Status',render:r=><span className="pill">{r.status||'pending'}</span>},
+   {key:'created_at',label:'Created',render:r=>date(r.created_at)},
+   {key:'inspected_at',label:'Inspected',render:r=>date(r.inspected_at)},
+   {key:'action',label:'Review',render:r=><button className="table-button" onClick={()=>open(r.id)}>Open</button>}
+  ]}/>
+  {selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">QC REVIEW</p><h3>{selected.product_name||selected.id}</h3><small>{selected.order_number||'No order'} · {selected.customer_name||'No customer'}</small></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div>
+   <div className="subsection"><h3>Checklist</h3><div className="qc-checklist">{(selected.checklist||[]).map((item,i)=><label key={i}><input type="checkbox" checked={!!item.checked} onChange={e=>setSelected(s=>({...s,checklist:s.checklist.map((x,j)=>j===i?{...x,checked:e.target.checked}:x)}))}/><span>{item.text||'Checklist item'}</span></label>)}</div></div>
+   <label className="settings-editor"><span>Notes</span><textarea rows={5} value={selected.notes||''} onChange={e=>setSelected(s=>({...s,notes:e.target.value}))}/></label>
+   <div className="button-row"><button className="table-button" onClick={()=>save('pending')} disabled={busy}>Save pending</button><button className="table-button" onClick={()=>save('rework')} disabled={busy}>Send to rework</button><button className="admin-primary" onClick={()=>save('passed')} disabled={busy}>Pass QC</button></div>
+  </div>}
+ </Shell>
+}
+
 function Operations({dashboard,onRefresh,busy}){
  const [error,setError]=useState('')
  const start=async id=>{try{await startAdminProduction(id);await onRefresh()}catch(e){setError(e.message)}}
  return <Shell kicker="MANUFACTURING" title="Operations control" description="Bring production, printers, materials and order actions into the browser." onRefresh={onRefresh} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<div className="workspace-cards"><div className="mini-card"><strong>{dashboard?.production?.active_jobs||0}</strong><span>Active jobs</span></div><div className="mini-card"><strong>{dashboard?.production?.printing_jobs||0}</strong><span>Printing</span></div><div className="mini-card"><strong>{dashboard?.printers?.online||0}/{dashboard?.printers?.total||0}</strong><span>Printers online</span></div><div className="mini-card"><strong>{dashboard?.inventory?.low_filament||0}</strong><span>Low filament</span></div><div className="mini-card"><strong>{dashboard?.business?.pending_qc||0}</strong><span>QC pending</span></div></div><div className="subsection"><h3>Production queue</h3><Table rows={dashboard?.production?.jobs||[]} columns={[{key:'product_name',label:'Job'},{key:'order_number',label:'Order'},{key:'printer_name',label:'Printer'},{key:'spool_name',label:'Material'},{key:'status',label:'Status'}]}/></div><div className="subsection"><h3>Recent orders</h3><Table rows={dashboard?.recent_orders||[]} columns={[{key:'order_number',label:'Order'},{key:'customer_name',label:'Customer'},{key:'status',label:'Status'},{key:'total_cents',label:'Total',render:r=>money(r.total_cents)},{key:'action',label:'Production',render:r=>!['completed','cancelled'].includes(String(r.status).toLowerCase())?<button className="table-button" onClick={()=>start(r.id)}>Start jobs</button>:<span>—</span>}]}/></div><div className="subsection"><h3>Printers</h3><Table rows={dashboard?.printers?.items||[]} columns={[{key:'name',label:'Printer'},{key:'model',label:'Model'},{key:'status',label:'Status'},{key:'nozzle_temp',label:'Nozzle',render:r=>r.nozzle_temp!=null?String(r.nozzle_temp)+'°C':'—'},{key:'bed_temp',label:'Bed',render:r=>r.bed_temp!=null?String(r.bed_temp)+'°C':'—'}]}/></div></Shell>
 }
 
-export function AdminWorkspaces({active,dashboard,onRefresh,busy}){if(active==='operations')return <Operations dashboard={dashboard} onRefresh={onRefresh} busy={busy}/>;if(active==='inventory')return <Inventory dashboard={dashboard}/>;if(active==='qc')return <QC dashboard={dashboard}/>;if(active==='catalog')return <Catalog/>;if(active==='customers')return <Customers/>;if(active==='quotes')return <Quotes/>;if(active==='users')return <Users/>;if(active==='settings')return <SettingsPage/>;if(active==='invoices')return <Invoices/>;if(active==='fulfillment')return <Fulfillment/>;if(active==='health')return <Health/>;if(active==='ai')return <AI/>;if(active==='marketing')return <Marketing/>;return null}
+export function AdminWorkspaces({active,dashboard,onRefresh,busy}){if(active==='operations')return <Operations dashboard={dashboard} onRefresh={onRefresh} busy={busy}/>;if(active==='inventory')return <Inventory dashboard={dashboard}/>;if(active==='qc')return <QCWorkspace/>;if(active==='designs')return <DesignVault/>;if(active==='catalog')return <Catalog/>;if(active==='customers')return <Customers/>;if(active==='quotes')return <Quotes/>;if(active==='users')return <Users/>;if(active==='settings')return <SettingsPage/>;if(active==='invoices')return <Invoices/>;if(active==='fulfillment')return <Fulfillment/>;if(active==='health')return <Health/>;if(active==='ai')return <AI/>;if(active==='marketing')return <Marketing/>;return null}
