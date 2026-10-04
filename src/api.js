@@ -84,6 +84,12 @@ export async function loginTeam(identifier,password){const data=await request('/
 export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
 export async function runOperationsAutomation(){return request('/api/v1/admin/operations/automation/tick',{method:'POST'})}
 
+export async function getAdminInvoices(params={}){const q=new URLSearchParams();if(params.q)q.set('q',params.q);if(params.status)q.set('status',params.status);if(params.sort)q.set('sort',params.sort);if(params.desc!=null)q.set('desc',params.desc?'1':'0');const suffix=q.toString()?'?'+q.toString():'';return request('/api/v1/invoices'+suffix)}
+export async function getAdminInvoice(invoiceId){return request('/api/v1/invoices/'+encodeURIComponent(invoiceId))}
+export async function getAdminFulfillments(){return request('/api/v1/fulfillments')}
+export async function getAdminFulfillment(fulfillmentId){return request('/api/v1/fulfillments/'+encodeURIComponent(fulfillmentId))}
+export async function getSystemHealth(){return request('/api/v1/health')}
+
 export async function getAdminCatalog(q=''){const data=await request('/api/v1/admin/catalog?q='+encodeURIComponent(q||''));return data}
 export async function updateAdminStorefront(productId,payload){return request('/api/v1/admin/catalog/'+encodeURIComponent(productId)+'/storefront',{method:'PATCH',body:JSON.stringify(payload)})}
 export async function getAdminCustomers(q=''){return request('/api/v1/admin/customers?q='+encodeURIComponent(q||''))}
