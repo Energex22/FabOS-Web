@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react'
-import {ArrowDownRight,ArrowRight,Box,Check,CircleDot,LogIn,Menu,Move3d,ShoppingCart,Sun,Moon,X} from 'lucide-react'
+import {ArrowRight,Box,Check,CircleDot,LogIn,Menu,Move3d,ShoppingCart,Sun,Moon,X} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
 import {cartCount,readCart} from './cart.js'
 import {getPublicCatalog,catalogImageUrl} from './api.js'
