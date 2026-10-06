@@ -29,3 +29,13 @@ test('production API configuration defaults to same-origin', () => {
   assert.match(api, /VITE_API_URL/)
   assert.match(api, /['"]\/api['"]/)
 })
+
+test('customer CAD quote upload preserves the generated job attachment path', () => {
+  const api = readFileSync(new URL('src/api.js', root), 'utf8')
+  const customWork = readFileSync(new URL('src/custom-work.jsx', root), 'utf8')
+  assert.match(api, /createCustomerQuoteWithFile/)
+  assert.match(api, /cad_job_id/)
+  assert.match(api, /\/api\/v1\/customer\/quotes\/upload/)
+  assert.match(customWork, /createCustomerQuoteWithFile/)
+  assert.match(customWork, /cad_job_id:cadResult\?\.job_id/)
+})
