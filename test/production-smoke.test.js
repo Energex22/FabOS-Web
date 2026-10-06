@@ -30,6 +30,13 @@ test('production API configuration defaults to same-origin', () => {
   assert.match(api, /['"]\/api['"]/)
 })
 
+test('customer CAD result is invalidated when source dimensions or idea change', () => {
+  const customWork = readFileSync(new URL('../src/custom-work.jsx', import.meta.url), 'utf8')
+  assert.match(customWork, /key==='idea'\|\|key==='dimensions'/)
+  assert.match(customWork, /setCadResult\(null\)/)
+  assert.match(customWork, /setPreflight\(null\)/)
+})
+
 test('customer CAD quote upload preserves the generated job attachment path', () => {
   const api = readFileSync(new URL('src/api.js', root), 'utf8')
   const customWork = readFileSync(new URL('src/custom-work.jsx', root), 'utf8')
