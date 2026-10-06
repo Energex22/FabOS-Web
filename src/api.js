@@ -1,4 +1,4 @@
-import {authHeaders,clearToken,getToken,setToken,AUTH_TOKEN_KEY} from './auth.js'
+import {authHeaders,clearToken,getToken,setToken,AUTH_TOKEN_KEY,clearAccountType,setAccountType} from './auth.js'
 const configuredApiBase=import.meta.env?.VITE_API_URL||import.meta.env?.VITE_API_BASE_URL||''
 const API_BASE=(configuredApiBase||'/api').replace(/\/$/,'')
 
@@ -37,6 +37,21 @@ async function multipartRequest(path,formData){
  return data
 }
 
+async function requestBlob(path,options={}){
+ let response
+ try{
+  response=await fetch(apiUrl(path),{headers:{...authHeaders(),...(options.headers||{})},...options})
+ }catch(err){
+  throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)
+ }
+ if(!response.ok){
+  let data=null
+  try{data=await response.json()}catch(_){data=null}
+  throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
+ }
+ return response.blob()
+}
+
 export async function getPublicCatalog(params={}){const search=new URLSearchParams();if(params.q)search.set('q',params.q);if(params.category&&params.category!=='All')search.set('category',params.category);if(params.sort)search.set('sort',params.sort);if(params.desc)search.set('desc','1');const suffix=search.toString()?`?${search.toString()}`:'';const data=await request(`/api/v1/catalog${suffix}`);return data.products||[]}
 export async function getPublicProduct(productId){return request(`/api/v1/catalog/${encodeURIComponent(productId)}`)}
 export async function getCatalogCategories(){const data=await request('/api/v1/catalog/categories');return data.categories||[]}
@@ -45,12 +60,13 @@ export function catalogImageUrl(image){
  if(!image)return ''
  const value=String(image.url||image.path||'').trim()
  if(!value)return ''
- if(/^https?:\/\//i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return value
+ if(/^https?:\/\//i.test(value)||value.startsWith('blob:'))return value
+ if(value.startsWith('data:'))return ''
  return apiUrl(value)
 }
-export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token)setToken(data.token);return data}
-export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token)setToken(data.token);return data}
-export async function logoutCustomer(){const token=getToken();if(!token){clearToken();return null}try{return await request('/api/v1/auth/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}})}catch{return null}finally{clearToken()}}
+export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token){setToken(data.token);clearAccountType()}return data}
+export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token){setToken(data.token);clearAccountType()}return data}
+export async function logoutCustomer(){const token=getToken();if(!token){clearToken();clearAccountType();return null}try{return await request('/api/v1/auth/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}})}catch{return null}finally{clearToken();clearAccountType()}}
 export async function createPublicQuoteWithFile(payload,file){
  const formData=new FormData()
  formData.append('name',payload.name)
@@ -92,7 +108,7 @@ export async function reviseCustomerCad(jobId,instruction,outputFormats=['stl','
  return request('/api/v1/customer/cad/jobs/'+encodeURIComponent(jobId)+'/revise',{method:'POST',body:JSON.stringify({instruction,output_formats:outputFormats})})
 }
 
-export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token)setToken(data.token);return data}
+export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token){setToken(data.token);setAccountType(type)}return data}
 export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
 export async function runOperationsAutomation(){return request('/api/v1/admin/operations/automation/tick',{method:'POST'})}
 
@@ -145,10 +161,16 @@ export const customerApi={
  createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
  createPublicQuote:(payload)=>request('/api/v1/quote-requests',{method:'POST',body:JSON.stringify(payload)}),
  createPublicQuoteWithFile,
+ createCustomerQuoteWithFile,
  orders:()=>request('/api/v1/customer/orders'),
  order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
  createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
+ getProofs:async()=>{const data=await request('/api/v1/customer/proofs');if(Array.isArray(data))return data;return data?.proofs||[]},
+ acceptQuote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}/accept`,{method:'POST'}),
+ declineQuote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}/decline`,{method:'POST'}),
+ proofAction:(proofId,action,comment)=>{const path=action==='approve'?'approve':action==='request-changes'?'request-changes':'';if(!path)throw new Error('Unknown proof action.');return request(`/api/v1/customer/proofs/${encodeURIComponent(proofId)}/${path}`,{method:'POST',body:JSON.stringify({comment:comment||''})})},
+ proofFile:(proofId)=>requestBlob(`/api/v1/customer/proofs/${encodeURIComponent(proofId)}/file`),
  generateCad:generateCustomerCad,
  cadJobs:getCustomerCadJobs,
  analyzeCadReference:analyzeCustomerCadReference,

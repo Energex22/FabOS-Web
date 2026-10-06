@@ -37,6 +37,10 @@
 
 .workspace-detail{margin-top:18px;padding:18px;border:1px solid var(--line,#dfe5e1);border-radius:14px;background:rgba(255,255,255,.02)}
 .workspace-detail pre,.health-json{margin:0;max-height:420px;overflow:auto;white-space:pre-wrap;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
+.workspace-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 18px;margin:0 0 14px;padding:0}
+.workspace-field{margin:0}
+.workspace-field dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+.workspace-field dd{margin:2px 0 0;font-weight:600}
 
 .qc-checklist{display:grid;gap:10px}.qc-checklist label{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px}.qc-checklist input{margin-top:3px}.qc-checklist span{line-height:1.4}
 

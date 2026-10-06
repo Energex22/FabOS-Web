@@ -7,7 +7,7 @@ The customer storefront remains a separate frontend project and now consumes the
 - Public catalog: `GET /api/v1/catalog`
 - Public categories: `GET /api/v1/catalog/categories`
 - Public product detail: `GET /api/v1/catalog/{product_id}`
-- API base defaults to `http://127.0.0.1:8000` for local development.
+- API base defaults to same-origin `/api` (override with `VITE_API_URL` or `VITE_API_BASE_URL`).
 - `VITE_API_URL` or `VITE_API_BASE_URL` can override the API base.
 - The homepage and product detail page fall back to the local preview catalog if the API is unavailable.
 - The existing cart remains local until authenticated checkout/order creation is connected.

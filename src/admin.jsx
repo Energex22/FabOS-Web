@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react'
 import {createRoot} from 'react-dom/client'
 import {Activity,AlertTriangle,Box,CheckCircle2,Clock3,LogOut,Package,Printer,RefreshCw,Settings2,ShoppingBag,Users} from 'lucide-react'
 import {getOperationsDashboard,loginTeam,logoutCustomer,runOperationsAutomation} from './api.js'
+import {getAccountType,isTeamAccountType} from './auth.js'
 import {AdminWorkspaces} from './admin-workspaces.jsx'
 import './admin.css'
 
@@ -23,7 +24,7 @@ function Dashboard({session,onLogout}){
  const runAutomation=async()=>{setAutomating(true);try{await runOperationsAutomation();await load()}catch(e){setError(e.message||'Automation run failed.')}finally{setAutomating(false)}}
  useEffect(()=>{load();const id=setInterval(load,5000);return()=>clearInterval(id)},[])
  if(error&&!data)return <div className="admin-shell"><header className="admin-header"><div className="admin-brand"><img src="/brand/fabvex-mark.svg" alt=""/><span>FABVEX <b>FABOS</b></span></div><button className="admin-ghost" onClick={onLogout}>Sign out</button></header><div className="admin-error-panel">{error}<button onClick={load}>Retry</button></div></div>
- const d=data||{business:{},production:{automation:{}},printers:{},inventory:{},maintenance:{items:[]},recent_orders:[],action_items:[]}
+ const d=data||{business:{},production:{automation:{},jobs:[]},printers:{items:[],online:0,total:0},inventory:{spools:[],low_filament:0,low_supplies:0},maintenance:{items:[]},recent_orders:[],action_items:[]}
  return <div className="admin-shell"><header className="admin-header"><div className="admin-brand"><img src="/brand/fabvex-mark.svg" alt=""/><span>FABVEX <b>FABOS</b></span></div><div className="admin-header-right"><span className="live-dot">● LIVE</span><span>{session?.user?.name||session?.user?.email||'Team'}</span><button className="admin-icon" onClick={load} disabled={refreshing} aria-label="Refresh"><RefreshCw size={17} className={refreshing?'spin':''}/></button><button className="admin-ghost" onClick={onLogout}><LogOut size={15}/> Sign out</button></div></header>
  <main className="admin-main"><div className="admin-title"><div><p className="admin-kicker">BUSINESS OVERVIEW</p><h1>Good work, <em>made visible.</em></h1><p>Live operating picture for FABVEX. Updated every 5 seconds.</p></div><div className="overview-actions"><div className="overview-status"><CheckCircle2 size={18}/><span>FabOS operational</span></div><button className="admin-ghost" onClick={runAutomation} disabled={automating}>{automating?<RefreshCw size={15} className="spin"/>:<Activity size={15}/>} {automating?"Running…":"Run automation now"}</button></div></div>
  <div className="workspace-nav" aria-label="FabOS workspaces"><button className={activeWorkspace==='overview'?'active':''} onClick={()=>setActiveWorkspace('overview')}>Overview</button><button className={activeWorkspace==='operations'?'active':''} onClick={()=>setActiveWorkspace('operations')}>Operations</button><button className={activeWorkspace==='inventory'?'active':''} onClick={()=>setActiveWorkspace('inventory')}>Inventory</button><button className={activeWorkspace==='designs'?'active':''} onClick={()=>setActiveWorkspace('designs')}>Design Vault</button><button className={activeWorkspace==='qc'?'active':''} onClick={()=>setActiveWorkspace('qc')}>QC</button><button className={activeWorkspace==='catalog'?'active':''} onClick={()=>setActiveWorkspace('catalog')}>Catalog</button><button className={activeWorkspace==='customers'?'active':''} onClick={()=>setActiveWorkspace('customers')}>Customers</button><button className={activeWorkspace==='quotes'?'active':''} onClick={()=>setActiveWorkspace('quotes')}>Quotes</button><button className={activeWorkspace==='marketing'?'active':''} onClick={()=>setActiveWorkspace('marketing')}>Marketing</button><button className={activeWorkspace==='invoices'?'active':''} onClick={()=>setActiveWorkspace('invoices')}>Billing</button><button className={activeWorkspace==='fulfillment'?'active':''} onClick={()=>setActiveWorkspace('fulfillment')}>Fulfillment</button><button className={activeWorkspace==='health'?'active':''} onClick={()=>setActiveWorkspace('health')}>Health</button><button className={activeWorkspace==='ai'?'active':''} onClick={()=>setActiveWorkspace('ai')}>AI</button><button className={activeWorkspace==='users'?'active':''} onClick={()=>setActiveWorkspace('users')}>Team</button><button className={activeWorkspace==='settings'?'active':''} onClick={()=>setActiveWorkspace('settings')}>Settings</button></div>
@@ -36,5 +37,37 @@ function Dashboard({session,onLogout}){
  <section className="panel"><div className="panel-head"><div><p className="admin-kicker">MAINTENANCE</p><h2>Printer service</h2></div><Settings2 size={18}/></div><div className="maintenance-list">{d.maintenance.items.map(p=><div className="maintenance-row" key={p.id}><div><strong>{p.name}</strong><small>{Number(p.hours_since_service||0).toFixed(0)}h since last service</small></div><span>{Number(p.total_hours||0).toFixed(0)}h total</span></div>)}</div></section><section className="panel wide"><div className="panel-head"><div><p className="admin-kicker">AI CAD</p><h2>Generated designs</h2></div><span>{d.cad?.total||0} total{d.cad?.failed?` · ${d.cad.failed} failed`:``}</span></div>{d.cad?.recent_jobs?.length?<div className="job-list">{d.cad.recent_jobs.map(job=><div className="job-row" key={job.id}><div className={"status-dot "+String(job.status||"")}/><div className="job-main"><strong>{job.spec?.shape?String(job.spec.shape).replace(/_/g," "):"CAD design"}</strong><small>{job.prompt||"Parametric CAD job"}{job.verification?.passed===true?" • verified":job.verification?.passed===false?" • verification failed":""}</small></div><span className="job-status">{job.status}</span></div>)}</div>:<div className="empty">No generated CAD jobs yet.</div>}</section></div>{activeWorkspace!=='overview'&&<AdminWorkspaces active={activeWorkspace} dashboard={d} onRefresh={load} busy={refreshing}/>}</main></div>
 }
 
-function App(){const [session,setSession]=useState(()=>{try{const token=localStorage.getItem('fabos.auth.token');return token?{token}:null}catch{return null}}),[error,setError]=useState('');const logout=()=>{logoutCustomer();setSession(null)};return session?<Dashboard session={session} onLogout={logout}/>:<Login error={error} setError={setError} onLogin={setSession}/>}
+function AccessDenied({onLogout}){
+ return <main className="admin-login"><div className="admin-login-card"><div className="admin-brand"><img src="/brand/fabvex-mark.svg" alt=""/><span>FABVEX <b>FABOS</b></span></div><p className="admin-kicker">TEAM OPERATIONS</p><h1>Team access only.</h1><p className="admin-muted">This console is for Fabvex team accounts. The signed-in account doesn't have team access, so the dashboard wasn't loaded.</p><div className="admin-denied-actions"><a className="admin-primary" href="/account.html">Go to my account</a> <button className="admin-ghost" onClick={onLogout}>Sign out</button></div></div></main>
+}
+
+function restoreSession(){
+ try{
+  const token=localStorage.getItem('fabos.auth.token')
+  if(!token)return null
+  return {token,accountType:getAccountType()}
+ }catch{return null}
+}
+
+function App(){
+ const [session,setSession]=useState(restoreSession)
+ const [error,setError]=useState('')
+ const [status,setStatus]=useState(()=>{const s=restoreSession();if(!s)return 'login';if(isTeamAccountType(s.accountType))return 'ok';return s.accountType?'denied':'verify'})
+ const logout=()=>{logoutCustomer();setSession(null);setStatus('login')}
+ const handleLogin=data=>{const accountType=String(data?.user?.account_type||'').toLowerCase();setSession({token:data?.token||'',accountType,user:data?.user});setStatus('ok')}
+ const retry=()=>{setError('');setStatus('verify')}
+ useEffect(()=>{
+  if(status!=='verify'||!session)return
+  let cancelled=false
+  getOperationsDashboard()
+   .then(()=>{if(!cancelled)setStatus('ok')})
+   .catch(err=>{if(cancelled)return;if(/\b(401|403)\b|forbidden|denied/i.test(String(err?.message||'')))setStatus('denied');else{setError(err?.message||'Could not verify this session.');setStatus('verify-error')}})
+  return()=>{cancelled=true}
+ },[status,session])
+ if(status==='login')return <Login error={error} setError={setError} onLogin={handleLogin}/>
+ if(status==='verify')return <main className="admin-login"><div className="admin-login-card"><p className="admin-kicker">TEAM OPERATIONS</p><h1>Verifying session…</h1><p className="admin-muted">Checking this sign-in against the team console.</p></div></main>
+ if(status==='verify-error')return <main className="admin-login"><div className="admin-login-card"><p className="admin-kicker">TEAM OPERATIONS</p><h1>Session check failed.</h1><p className="admin-muted">{error}</p><button className="admin-primary" onClick={retry}>Retry</button> <button className="admin-ghost" onClick={logout}>Sign out</button></div></main>
+ if(status==='denied')return <AccessDenied onLogout={logout}/>
+ return <Dashboard session={session} onLogout={logout}/>
+}
 createRoot(document.getElementById('root')).render(<App/>)
