@@ -71,6 +71,18 @@ export async function analyzeCustomerCadReference(files,referenceNote=''){
  return multipartRequest('/api/v1/customer/cad/analyze-reference',formData)
 }
 
+export async function createCustomerQuoteWithFile(payload,file){
+ const formData=new FormData()
+ formData.append('idea',payload.project?.idea||'')
+ formData.append('dimensions',payload.project?.dimensions||'')
+ formData.append('material',payload.project?.material||'')
+ formData.append('quantity',String(payload.project?.quantity||1))
+ formData.append('notes',payload.project?.notes||'')
+ if(payload.project?.cad_job_id)formData.append('cad_job_id',payload.project.cad_job_id)
+ formData.append('file',file,file.name)
+ return multipartRequest('/api/v1/customer/quotes/upload',formData)
+}
+
 export async function generateCustomerCad(payload){return request('/api/v1/customer/cad/generate',{method:'POST',body:JSON.stringify(payload)})}
 export async function getCustomerCadJobs(limit=50){return request('/api/v1/customer/cad/jobs?limit='+encodeURIComponent(limit))}
 export async function getCustomerCadCapabilities(){return request('/api/v1/customer/cad/capabilities')}
