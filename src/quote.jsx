@@ -2,7 +2,8 @@ import React,{useEffect,useState} from 'react'
 import {ArrowLeft,ArrowRight,Check,Clock,Download,FileText,XCircle} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
 import {customerApi,AUTH_TOKEN_KEY} from './api.js'
-import {getTheme,setTheme} from './theme.js'
+import {getTheme,setTheme,initTheme} from './theme.js'
+initTheme()
 import './styles.css'
 import './quote.css'
 function money(c){return '$'+(Number(c||0)/100).toFixed(2)}

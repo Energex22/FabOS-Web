@@ -3,7 +3,9 @@ import {ArrowRight,Box,Check,CircleDot,LogIn,Menu,Move3d,ShoppingCart,Sun,Moon,X
 import {createRoot} from 'react-dom/client'
 import {cartCount,readCart} from './cart.js'
 import {getPublicCatalog,catalogImageUrl} from './api.js'
-import {getTheme,setTheme} from './theme.js'
+import {formatDollars} from './money.js'
+import {getTheme,setTheme,initTheme} from './theme.js'
+initTheme()
 import './styles.css'
 import './home-redesign.css'
 
@@ -98,7 +100,7 @@ function App(){
     </div>
     {products.length?<div className="nv2-product-row">{products.map(p=><a className="nv2-product" href={'/product.html?id='+encodeURIComponent(p.id)} key={p.id}>
       <div>{p.images?.length?<img src={catalogImageUrl(p.images.find(i=>i.is_primary)||p.images[0])} alt={p.name}/>:<Box size={54}/>}<span className="product-corner">FABVEX</span></div>
-      <section><strong>{p.name}</strong><small>{p.category||'Custom 3D Print'}</small><b>{'$'+Number(p.price||0).toFixed(2)} <ArrowRight size={14}/></b></section>
+      <section><strong>{p.name}</strong><small>{p.category||'Custom 3D Print'}</small><b>{formatDollars(p.price)} <ArrowRight size={14}/></b></section>
      </a>)}</div>:<div className="nv2-empty">Catalog products will appear here when published.</div>}
    </section>
 
