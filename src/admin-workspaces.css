@@ -45,3 +45,32 @@
 .qc-checklist{display:grid;gap:10px}.qc-checklist label{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px}.qc-checklist input{margin-top:3px}.qc-checklist span{line-height:1.4}
 
 .printer-controls{display:flex;flex-wrap:wrap;gap:6px;min-width:320px}.printer-preheat{display:flex;flex-wrap:wrap;gap:6px;width:100%}.printer-preheat input{width:95px}.danger-button{border-color:#c44!important}.printer-result{margin-top:14px}
+
+/* Phase 1 — Proofs workspace + proof send flow + key settings */
+.proof-group-desc{margin:-6px 0 12px;color:rgba(255,255,255,.5);font-size:12px}
+.proof-customer-comment{color:#ffd28a!important;font-weight:700}
+.proof-staff-note{color:rgba(255,255,255,.6)}
+.proof-admin-list{display:grid;gap:8px;margin-bottom:6px}
+.proof-admin-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.02)}
+.proof-admin-row>div{display:grid;gap:4px;min-width:0}
+.proof-admin-row strong{font-size:13px}
+.proof-admin-row small{display:block;color:rgba(255,255,255,.5);font-size:11px;line-height:1.45}
+.proof-admin-row .proof-send-form{grid-column:1/-1}
+.proof-upload-form,.proof-send-form{display:grid;gap:12px;margin-top:16px;padding:16px;border:1px dashed rgba(255,255,255,.14);border-radius:12px}
+.proof-upload-form label,.proof-send-form label{display:grid;gap:7px;font-size:12px;font-weight:700;color:rgba(255,255,255,.65)}
+.proof-upload-form input[type="file"],.proof-upload-form textarea,.proof-send-form textarea{min-height:40px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:inherit;padding:9px 12px;font:inherit}
+.proof-upload-form textarea,.proof-send-form textarea{resize:vertical}
+.ai-seam{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid rgba(0,163,255,.3);border-radius:10px;background:rgba(0,163,255,.06)}
+.ai-seam-badge{flex:none;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7cc7ff;border:1px solid rgba(0,163,255,.4);border-radius:999px;padding:4px 9px}
+.ai-seam small{color:rgba(255,255,255,.55);font-size:11px;line-height:1.5}
+.proof-send-toggle{display:flex!important;flex-direction:row!important;align-items:center;gap:9px;font-weight:600!important}
+.proof-upload-hint{color:rgba(255,255,255,.45);font-size:11px;line-height:1.5}
+.key-settings .admin-kicker{margin-bottom:12px}
+.key-setting{display:grid;gap:10px;padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.02)}
+.key-setting strong{font-size:13px}
+.key-setting small{display:block;color:rgba(255,255,255,.5);font-size:11px;line-height:1.5;margin-top:4px}
+.key-setting-input{display:flex;align-items:center;gap:10px}
+.key-setting-input input{width:110px;min-height:40px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:inherit;padding:9px 12px;font:inherit}
+.key-setting-input span{color:rgba(255,255,255,.5);font-size:12px}
+.key-setting-msg{color:#ffb6b6}
+.key-setting-msg.ok{color:#8df0ae}

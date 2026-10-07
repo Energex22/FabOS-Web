@@ -133,6 +133,59 @@ export async function getAdminQc(){return request('/api/v1/admin/qc')}
 export async function getAdminQcDetail(inspectionId){return request('/api/v1/admin/qc/'+encodeURIComponent(inspectionId))}
 export async function updateAdminQc(inspectionId,payload){return request('/api/v1/admin/qc/'+encodeURIComponent(inspectionId),{method:'PUT',body:JSON.stringify(payload)})}
 export async function reconcileAdminQc(){return request('/api/v1/admin/qc/reconcile',{method:'POST'})}
+// ---------------------------------------------------------------------------
+// Admin design proofs (Phase 1 proof cycle). Wired to the admin proof
+// endpoints: global list filterable by status, single-proof view (carries the
+// staff notes plus the customer's change-request comment), per-quote list,
+// create (draft or sent), multipart file upload, and send.
+// ---------------------------------------------------------------------------
+export async function getAdminProofs(params={}){
+ const q=new URLSearchParams()
+ if(params.status)q.set('status',params.status)
+ const suffix=q.toString()?'?'+q.toString():''
+ const data=await request('/api/v1/admin/proofs'+suffix)
+ return data?.proofs||[]
+}
+export async function getAdminProof(proofId){
+ const data=await request('/api/v1/admin/proofs/'+encodeURIComponent(proofId))
+ return data?.proof||null
+}
+export async function getAdminQuoteProofs(quoteId,status){
+ const q=new URLSearchParams()
+ if(status)q.set('status',status)
+ const suffix=q.toString()?'?'+q.toString():''
+ const data=await request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId)+'/proofs'+suffix)
+ return data?.proofs||[]
+}
+export async function createAdminProof(quoteId,{notes='',customer_note='',send=false}={}){
+ const data=await request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId)+'/proofs',{method:'POST',body:JSON.stringify({notes,customer_note,send})})
+ return data?.proof||null
+}
+export async function uploadAdminProof(quoteId,file,customerNote=''){
+ const formData=new FormData()
+ formData.append('file',file,file?.name||'proof')
+ formData.append('customer_note',customerNote||'')
+ const data=await multipartRequest('/api/v1/admin/quotes/'+encodeURIComponent(quoteId)+'/proofs/upload',formData)
+ return data
+}
+export async function sendAdminProof(proofId,customerNote=''){
+ const data=await request('/api/v1/admin/proofs/'+encodeURIComponent(proofId)+'/send',{method:'POST',body:JSON.stringify({customer_note:customerNote||''})})
+ return data?.proof||null
+}
+/**
+ * AI-draft seam for proof-send messages (Phase 1; the AI step itself ships later).
+ *
+ * Future contract: given the admin proof payload and its quote, return an
+ * AI-drafted customer-facing message string for staff review, or null to keep
+ * the staff-written per-revision note. The caller (proof send flow) must treat
+ * a null/throwing result as "use the staff note" so the flow works today.
+ *
+ * Deliberately unimplemented — the send form shows a visible "AI drafting
+ * coming" placeholder until this is built.
+ */
+export async function draft_proof_message(/* proof, quote */){
+ return null
+}
 export async function getAdminUsers(){return request('/api/v1/admin/users')}
 export async function getAdminPermissions(){return request('/api/v1/admin/permissions')}
 export async function getAdminSettings(){return request('/api/v1/admin/settings')}
