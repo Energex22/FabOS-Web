@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react'
 import {ArrowLeft,ArrowRight,Check,LogIn,LogOut,Moon,Package,Sun,UserRound} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
 import {customerApi,AUTH_TOKEN_KEY} from './api.js'
+import {clearToken,clearAccountType} from './auth.js'
 import {formatCents} from './money.js'
 import {getTheme,setTheme,initTheme} from './theme.js'
 initTheme()
@@ -17,7 +18,14 @@ function App(){
  const [account,setAccount]=useState(null),[quotes,setQuotes]=useState([]),[cadJobs,setCadJobs]=useState([]),[mode,setMode]=useState('login'),[busy,setBusy]=useState(Boolean(token)),[error,setError]=useState(''),[theme,setThemeState]=useState(getTheme())
  const [form,setForm]=useState({name:'',email:'',password:'',phone:''})
  const update=(key,value)=>{setError('');setForm(v=>({...v,[key]:value}))}
- const load=async()=>{const [me,qs,cad]=await Promise.all([customerApi.me(),customerApi.quotes(),customerApi.cadJobs(20)]);setAccount(me.customer||me.user||me);setQuotes(qs.quotes||[]);setCadJobs(cad.jobs||cad||[])}
+ const load=async()=>{
+  const [meResult,quotesResult,cadResult]=await Promise.allSettled([customerApi.me(),customerApi.quotes(),customerApi.cadJobs(20)])
+  if(meResult.status==='fulfilled')setAccount(meResult.value.customer||meResult.value.user||meResult.value)
+  else if(meResult.reason?.status===401){clearToken();clearAccountType()}
+  else setError(meResult.reason?.message||'We could not load your account.')
+  if(quotesResult.status==='fulfilled')setQuotes(quotesResult.value.quotes||[])
+  if(cadResult.status==='fulfilled')setCadJobs(cadResult.value.jobs||cadResult.value||[])
+ }
  useEffect(()=>{if(!token){setBusy(false);return}load().catch(()=>{}).finally(()=>setBusy(false))},[token])
  const submit=async e=>{e.preventDefault();setBusy(true);setError('');try{const data=mode==='login'?await customerApi.login(form.email,form.password):await customerApi.register(form.name,form.email,form.password,form.phone);setAccount(data?.customer||data?.user||data);setForm(v=>({...v,password:''}));if(returnPath)window.location.href=returnPath;else await load()}catch(err){setError(err.message||'Unable to sign in.')}finally{setBusy(false)}}
  const signOut=()=>customerApi.logout().finally(()=>window.location.href='/')
