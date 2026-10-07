@@ -33,7 +33,7 @@ async function multipartRequest(path,formData){
  catch(err){throw new Error(`Unable to reach the Fabvex service. ${publicError(err?.message,'Network request failed')}`)}
  let data=null
  try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
+ if(!response.ok){const error=new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`));error.status=response.status;throw error}
  return data
 }
 
@@ -47,7 +47,9 @@ async function requestBlob(path,options={}){
  if(!response.ok){
   let data=null
   try{data=await response.json()}catch(_){data=null}
-  throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
+  const error=new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
+  error.status=response.status
+  throw error
  }
  return response.blob()
 }
@@ -59,6 +61,14 @@ export async function getCatalogCategories(){const data=await request('/api/v1/c
 export function catalogImageUrl(image){
  if(!image)return ''
  const value=String(image.url||image.path||'').trim()
+ if(!value)return ''
+ if(/^https?:\/\//i.test(value)||value.startsWith('blob:'))return value
+ if(value.startsWith('data:'))return ''
+ return apiUrl(value)
+}
+export function cadArtifactUrl(artifact){
+ if(!artifact)return ''
+ const value=String(artifact.url||artifact.path||'').trim()
  if(!value)return ''
  if(/^https?:\/\//i.test(value)||value.startsWith('blob:'))return value
  if(value.startsWith('data:'))return ''
@@ -111,6 +121,7 @@ export async function updateAdminStorefront(productId,payload){return request('/
 export async function getAdminCustomers(q=''){return request('/api/v1/admin/customers?q='+encodeURIComponent(q||''))}
 export async function createAdminCustomer(payload){return request('/api/v1/admin/customers',{method:'POST',body:JSON.stringify(payload)})}
 export async function getAdminQuotes(params={}){const q=new URLSearchParams();if(params.q)q.set('q',params.q);if(params.status)q.set('status',params.status);if(params.group)q.set('group',params.group);const suffix=q.toString()?'?'+q.toString():'';return request('/api/v1/admin/quotes'+suffix)}
+export async function getAdminQuote(quoteId){return request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId))}
 export async function updateAdminQuote(quoteId,payload){return request('/api/v1/admin/quotes/'+encodeURIComponent(quoteId),{method:'PUT',body:JSON.stringify(payload)})}
 export async function startAdminProduction(orderId){return request('/api/v1/admin/orders/'+encodeURIComponent(orderId)+'/start-production',{method:'POST'})}
 export async function adminPrinterPreflight(id){return request('/api/v1/admin/printers/'+encodeURIComponent(id)+'/preflight',{method:'POST'})}

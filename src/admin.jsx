@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client'
 import {Activity,AlertTriangle,Box,CheckCircle2,Clock3,LogOut,Package,Printer,RefreshCw,Settings2,ShoppingBag,Users} from 'lucide-react'
 import {getOperationsDashboard,loginTeam,logoutCustomer,runOperationsAutomation} from './api.js'
 import {formatCents} from './money.js'
-import {getAccountType,isTeamAccountType,setAccountType} from './auth.js'
+import {getAccountType,isTeamAccountType,setAccountType,AUTH_TOKEN_KEY} from './auth.js'
 import {AdminWorkspaces} from './admin-workspaces.jsx'
 import './admin.css'
 
@@ -43,7 +43,7 @@ function AccessDenied({onLogout}){
 
 function restoreSession(){
  try{
-  const token=localStorage.getItem('fabos.auth.token')
+  const token=localStorage.getItem(AUTH_TOKEN_KEY)
   if(!token)return null
   return {token,accountType:getAccountType()}
  }catch{return null}

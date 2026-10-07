@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react'
 import {ArrowLeft,ArrowRight,Check,Clock,Download,FileText,XCircle} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
 import {customerApi,AUTH_TOKEN_KEY} from './api.js'
+import {handleUnauthorized} from './auth.js'
 import {formatCents} from './money.js'
 import {getTheme,setTheme,initTheme} from './theme.js'
 initTheme()
@@ -12,7 +13,7 @@ const proofLabels={draft:'Draft',sent:'Awaiting your review',changes_requested:'
 function App(){
  const token=typeof localStorage!=='undefined'?localStorage.getItem(AUTH_TOKEN_KEY):'',id=new URLSearchParams(location.search).get('id')||''
  const [data,setData]=useState(null),[proofs,setProofs]=useState([]),[error,setError]=useState(''),[busy,setBusy]=useState(Boolean(token)),[action,setAction]=useState(''),[comment,setComment]=useState('')
- const load=async()=>{try{const [quoteData,proofData]=await Promise.all([customerApi.quote(id),customerApi.getProofs()]);setData(quoteData);setProofs((proofData||[]).filter(p=>String(p.quote_id)===String(id)))}catch(e){setError(e.message||'Quote unavailable.')}finally{setBusy(false)}}
+ const load=async()=>{try{const [quoteData,proofData]=await Promise.all([customerApi.quote(id),customerApi.getProofs()]);setData(quoteData);setProofs((proofData||[]).filter(p=>String(p.quote_id)===String(id)))}catch(e){if(e?.status===401){handleUnauthorized();return}setError(e.message||'Quote unavailable.')}finally{setBusy(false)}}
  useEffect(()=>{if(!token){location.href='/account.html?return='+encodeURIComponent('/quote.html?id='+id);return}if(!id){setError('Quote not found.');setBusy(false);return}load()},[token,id])
  const decide=async decision=>{setAction(decision);setError('');try{const result=decision==='accept'?await customerApi.acceptQuote(id):await customerApi.declineQuote(id);if(result?.order_id)location.href='/order.html?id='+encodeURIComponent(result.order_id);else await load()}catch(e){setError(e.message||'We could not update the quote.')}finally{setAction('')}}
  const reviewProof=async decision=>{const proof=proofs.find(p=>p.status==='sent');if(!proof)return;setAction('proof-'+decision);setError('');try{await customerApi.proofAction(proof.id,decision==='approve'?'approve':'request-changes',comment);setComment('');await load()}catch(e){setError(e.message||'We could not update the design proof.')}finally{setAction('')}}
