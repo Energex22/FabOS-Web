@@ -153,7 +153,7 @@ export const customerApi={
  order:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}`),
  createOrder:(payload)=>request('/api/v1/customer/orders',{method:'POST',body:JSON.stringify(payload)}),
  createPaymentSession:(orderId)=>request(`/api/v1/customer/orders/${encodeURIComponent(orderId)}/payment-session`,{method:'POST'}),
- getProofs:async()=>{const data=await request('/api/v1/customer/proofs');if(Array.isArray(data))return data;return data?.proofs||[]},
+ getProofs:async()=>{const data=await request('/api/v1/customer/proofs');const p=data?.proofs;return Array.isArray(p)?p:(Array.isArray(data)?data:[])},
  acceptQuote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}/accept`,{method:'POST'}),
  declineQuote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}/decline`,{method:'POST'}),
  proofAction:(proofId,action,comment)=>{const path=action==='approve'?'approve':action==='request-changes'?'request-changes':'';if(!path)throw new Error('Unknown proof action.');return request(`/api/v1/customer/proofs/${encodeURIComponent(proofId)}/${path}`,{method:'POST',body:JSON.stringify({comment:comment||''})})},
