@@ -23,7 +23,7 @@ async function request(path,options={}){
  }
  let data=null
  try{data=await response.json()}catch(_){data=null}
- if(!response.ok)throw new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`))
+ if(!response.ok){const error=new Error(publicError((data&&data.detail?.message)||(data&&data.detail)||(data&&data.error)||'',`API request failed: ${response.status}`));error.status=response.status;throw error}
  return data
 }
 
@@ -143,7 +143,6 @@ export const customerApi={
  register:registerCustomer,
  logout:logoutCustomer,
  me:()=>request('/api/v1/customer/me'),
- updateProfile:(payload)=>request('/api/v1/customer/me',{method:'PATCH',body:JSON.stringify(payload)}),
  quotes:()=>request('/api/v1/customer/quotes'),
  quote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}`),
  createQuote:(payload)=>request('/api/v1/customer/quotes',{method:'POST',body:JSON.stringify(payload)}),
