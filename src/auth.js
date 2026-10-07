@@ -38,3 +38,15 @@ export function authHeaders(){
  const token=getToken()
  return token?{Authorization:`Bearer ${token}`}:{}
 }
+
+// Centralized expired-token handling: drop the stale session and send the
+// user back to sign-in, preserving the current page so they land back after
+// re-login (same /account.html?return= pattern the pages use for missing tokens).
+export function handleUnauthorized(){
+ clearToken()
+ clearAccountType()
+ if(typeof window!=='undefined'&&window.location){
+  const here=String(window.location.pathname||'')+String(window.location.search||'')
+  window.location.href='/account.html?return='+encodeURIComponent(here)
+ }
+}

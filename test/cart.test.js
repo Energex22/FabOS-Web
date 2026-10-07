@@ -27,6 +27,17 @@ test('cart removes an item when its quantity reaches zero',()=>{
   assert.deepEqual(cart,[])
 })
 
+test('cart add clamps summed quantity at 1000',()=>{
+  let cart=addCartItem([],{id:'p-1',price:10,quantity:900})
+  cart=addCartItem(cart,{id:'p-1',price:10,quantity:500})
+  assert.equal(cart[0].quantity,1000)
+})
+
+test('cart increment clamps quantity at 1000',()=>{
+  const cart=changeCartItem([{id:'p-1',price:10,quantity:999}], 'p-1', 50)
+  assert.equal(cart[0].quantity,1000)
+})
+
 test('cart storage failure is safe',()=>{
   globalThis.localStorage={getItem(){throw new Error('blocked')},setItem(){throw new Error('blocked')},removeItem(){}}
   assert.deepEqual(readCart(),[])
