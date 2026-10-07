@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ArrowLeft, ArrowRight, Box, Check, Upload, X } from 'lucide-react'
-import { customerApi } from './api.js'
+import { customerApi, cadArtifactUrl } from './api.js'
 import CadPreview from './cad-preview.jsx'
 import { getToken,authHeaders } from './auth.js'
 
@@ -28,10 +28,10 @@ function App(){
  useEffect(()=>{loadPrinters()},[])
  const loadPrinters=async()=>{if(!getToken())return;try{const result=await customerApi.cadPrinters();setPrinters(result.printers||[])}catch(_){setPrinters([])}}
  const runPreflight=async()=>{if(!cadResult?.spec)return;setPreflightLoading(true);setCadError('');try{const result=await customerApi.preflightCad({spec:cadResult.spec,printer_id:selectedPrinter||null});setPreflight(result)}catch(err){setCadError(err.message||'Printer preflight failed.')}finally{setPreflightLoading(false)}}
- const downloadCad=async artifact=>{try{const response=await fetch(artifact.url,{headers:{...authHeaders()}});if(!response.ok)throw new Error('Download failed');const blob=await response.blob();const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='fabvex-model.'+artifact.format;link.click();URL.revokeObjectURL(url)}catch(err){setCadError(err.message||'Download failed.')}}
+ const downloadCad=async artifact=>{try{const response=await fetch(cadArtifactUrl(artifact),{headers:{...authHeaders()}});if(!response.ok)throw new Error('Download failed');const blob=await response.blob();const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='fabvex-model.'+artifact.format;link.click();URL.revokeObjectURL(url)}catch(err){setCadError(err.message||'Download failed.')}}
  const update=(key,value)=>{setData(d=>({...d,[key]:value}));if(key==='idea'||key==='dimensions'){setCadResult(null);setPreflight(null);setCadRevision('');setCadError('')}};const next=()=>setStep(s=>Math.min(4,s+1));const back=()=>setStep(s=>Math.max(1,s-1))
  const selectFile=event=>{const candidate=event.target.files?.[0]||null;const fileError=validateFile(candidate);if(fileError){setFile(null);setError(fileError);event.target.value='';return}setError('');setFile(candidate)}
- const submit=async e=>{e.preventDefault();setLoading(true);setError('');const fileError=validateFile(file);if(fileError){setError(fileError);setLoading(false);return}if(file&&!getToken()){
+ const submit=async e=>{e.preventDefault();setLoading(true);setError('');const fileError=validateFile(file);if(fileError){setError(fileError);setLoading(false);return}if((file||referenceImages.length)&&!getToken()){
   const attachments=file&&referenceImages.length?'your attached file and reference photos':file?'your attached file':'your reference photos'
   const proceed=window.confirm(`Sign in is required before submitting your request.\n\nYour form text is saved, but ${attachments} cannot be saved in the browser \u2014 please re-attach ${referenceImages.length&&!file?'them':'it'} after signing in. Any generated CAD result will also need to be regenerated.`)
   if(!proceed){setLoading(false);return}

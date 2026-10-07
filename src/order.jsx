@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react'
 import {ArrowLeft,ArrowRight,Check,Clock,Package,Truck,XCircle} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
 import {customerApi,AUTH_TOKEN_KEY} from './api.js'
+import {handleUnauthorized} from './auth.js'
 import {formatDollars} from './money.js'
 import './styles.css'
 import './order-payment.css'
@@ -19,7 +20,7 @@ function App(){
  const token=typeof localStorage!=='undefined'?localStorage.getItem(AUTH_TOKEN_KEY):''
  const orderId=new URLSearchParams(window.location.search).get('id')||''
  const [data,setData]=useState(null),[loading,setLoading]=useState(Boolean(token)),[error,setError]=useState(''),[paymentLoading,setPaymentLoading]=useState(false),[paymentError,setPaymentError]=useState('')
- useEffect(()=>{if(!token){window.location.href='/account.html?return='+encodeURIComponent('/order.html?id='+orderId);return}if(!orderId){setError('Order not found.');setLoading(false);return}let cancelled=false;customerApi.order(orderId).then(result=>{if(!cancelled)setData(result)}).catch(err=>{if(!cancelled)setError(err.message||'We could not load that order.')}).finally(()=>{if(!cancelled)setLoading(false)});return()=>{cancelled=true}},[token,orderId])
+ useEffect(()=>{if(!token){window.location.href='/account.html?return='+encodeURIComponent('/order.html?id='+orderId);return}if(!orderId){setError('Order not found.');setLoading(false);return}let cancelled=false;customerApi.order(orderId).then(result=>{if(!cancelled)setData(result)}).catch(err=>{if(!cancelled){if(err?.status===401){handleUnauthorized();return}setError(err.message||'We could not load that order.')}}).finally(()=>{if(!cancelled)setLoading(false)});return()=>{cancelled=true}},[token,orderId])
  const startPayment=async()=>{if(!orderId||paymentLoading)return;setPaymentLoading(true);setPaymentError('');try{const result=await customerApi.createPaymentSession(orderId);const payment=result?.payment??result;if(payment?.checkout_url){window.location.href=payment.checkout_url;return}if(payment?.status==='paid'){setData(current=>current?{...current,order:{...current.order,status:'confirmed'}}:current)}else{setPaymentError('Payment is not ready yet. Please try again shortly.')}}catch(err){setPaymentError(err.message||'We could not start payment. Please try again.')}finally{setPaymentLoading(false)}}
  if(loading)return <div className="order-shell"><main className="order-missing"><p className="eyebrow">ORDER</p><h1>Loading your order…</h1></main></div>
  const order=data?.order,items=data?.items||[],designs=data?.designs||[]

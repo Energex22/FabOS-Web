@@ -45,10 +45,10 @@ export function addCartItem(cart,item){
   const current=Array.isArray(cart)?cart.map(normalizeItem).filter(Boolean):[]
   if(!normalized)return current
   const existing=current.find(i=>i.id===normalized.id)
-  return existing?current.map(i=>i.id===normalized.id?{...i,quantity:(Number(i.quantity)||0)+normalized.quantity}:i):[...current,normalized]
+  return existing?current.map(i=>i.id===normalized.id?{...i,quantity:Math.min(1000,(Number(i.quantity)||0)+normalized.quantity)}:i):[...current,normalized]
 }
 
 export function changeCartItem(cart,id,delta){
   const amount=Number(delta)||0
-  return (Array.isArray(cart)?cart:[]).map(normalizeItem).filter(Boolean).flatMap(item=>item.id!==id?[item]:Number(item.quantity)+amount>0?[{...item,quantity:Math.floor(Number(item.quantity)+amount)}]:[])
+  return (Array.isArray(cart)?cart:[]).map(normalizeItem).filter(Boolean).flatMap(item=>item.id!==id?[item]:Number(item.quantity)+amount>0?[{...item,quantity:Math.min(1000,Math.floor(Number(item.quantity)+amount))}]:[])
 }

@@ -3,6 +3,7 @@ import {ArrowLeft,ArrowRight,Box,Check,Minus,Plus,ShoppingCart} from 'lucide-rea
 import {createRoot} from 'react-dom/client'
 import {readCart,writeCart,cartCount,changeCartItem} from './cart.js'
 import {customerApi,AUTH_TOKEN_KEY} from './api.js'
+import {handleUnauthorized} from './auth.js'
 import {formatDollars} from './money.js'
 import './styles.css'
 
@@ -27,7 +28,7 @@ function App(){
    const next={name:c.name||u.name||'',email:c.email||u.email||''}
    setForm(v=>({...v,...next}))
    if(typeof localStorage!=='undefined')localStorage.setItem('fabos.customer',JSON.stringify(next))
-  }).catch(()=>{}).finally(()=>setProfileLoading(false))
+  }).catch(err=>{if(err?.status===401)handleUnauthorized()}).finally(()=>setProfileLoading(false))
  },[token])
  const submit=async e=>{
   e.preventDefault();if(!cart.length||loading||profileLoading)return
