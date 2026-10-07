@@ -1,7 +1,7 @@
 
 import React,{useEffect,useState} from 'react'
 import {Brain,RefreshCw,Save,Package,Factory,Store,Settings,Activity} from 'lucide-react'
-import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction} from './api.js'
+import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction} from './api.js'
 import {formatCents} from './money.js'
 import './admin-workspaces.css'
 
@@ -26,10 +26,18 @@ function Customers(){
 }
 
 function Quotes(){
- const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[selected,setSelected]=useState(null)
  const load=async()=>{setBusy(true);try{setData(await getAdminQuotes());setError('')}catch(e){setError(e.message)}finally{setBusy(false)}};useEffect(()=>{load()},[])
  const send=async r=>{setBusy(true);try{await updateAdminQuote(r.id,{status:'sent'});await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
- return <Shell kicker="SALES" title="Quotes" description="Review and advance quote workflow." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.quotes||[]} columns={[{key:'quote_number',label:'Quote',render:r=><strong>{r.quote_number||r.id}</strong>},{key:'customer',label:'Customer',render:r=>r.customer_name||r.customer_email||r.customer_id||'—'},{key:'status',label:'Status',render:r=><span className="pill">{r.status}</span>},{key:'total',label:'Total',render:r=>formatCents(r.total_cents)},{key:'action',label:'Action',render:r=><div className="button-row">{r.status==='draft'&&<button className="table-button" onClick={()=>send(r)}>Send</button>}<a className="table-button" href={'/quote.html?id='+encodeURIComponent(r.id)}>Open</a></div>}]}/></Shell>
+ const open=async id=>{setBusy(true);try{setSelected(await getAdminQuote(id));setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
+ const quote=selected?.quote||{}
+ return <Shell kicker="SALES" title="Quotes" description="Review and advance quote workflow." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.quotes||[]} columns={[{key:'quote_number',label:'Quote',render:r=><strong>{r.quote_number||r.id}</strong>},{key:'customer',label:'Customer',render:r=>r.customer_name||r.customer_email||r.customer_id||'—'},{key:'status',label:'Status',render:r=><span className="pill">{r.status}</span>},{key:'total',label:'Total',render:r=>formatCents(r.total_cents)},{key:'action',label:'Action',render:r=><div className="button-row">{r.status==='draft'&&<button className="table-button" onClick={()=>send(r)}>Send</button>}<button className="table-button" onClick={()=>open(r.id)}>View</button></div>}]}/>
+ {selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">QUOTE DETAIL</p><h3>{quote.quote_number||quote.id}</h3><small>{quote.customer_name||quote.customer_email||'No customer'}</small></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div>
+  <FieldList fields={[['Status',quote.status||'—'],['Customer',quote.customer_name||quote.customer_email||'—'],['Total',formatCents(quote.total_cents)],['Created',date(quote.created_at)],['Expires',date(quote.expires_at)],['Notes',quote.notes||'—']]}/>
+  <div className="subsection"><h3>Line items</h3><Table rows={selected.items||[]} columns={[{key:'description',label:'Item',render:r=><div><strong>{r.description||r.product_name||'Item'}</strong><small>{r.product_name||''}</small></div>},{key:'quantity',label:'Qty'},{key:'unit',label:'Unit price',render:r=>formatCents(r.unit_price_cents)},{key:'line',label:'Line total',render:r=>formatCents(Number(r.unit_price_cents||0)*Number(r.quantity||0))}]}/></div>
+  {(selected.versions||[]).length>0&&<div className="subsection"><h3>Version history</h3><Table rows={selected.versions} columns={[{key:'version',label:'Version',render:r=>'v'+(r.version||'—')},{key:'status',label:'Status',render:r=><span className="pill">{r.status||'—'}</span>},{key:'total',label:'Total',render:r=>formatCents(r.total_cents)},{key:'created_at',label:'Created',render:r=>date(r.created_at)}]}/></div>}
+ </div>}
+ </Shell>
 }
 
 function Users(){
