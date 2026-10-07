@@ -18,6 +18,8 @@ Caddy serves the storefront and proxies /api/* to FabOS on 127.0.0.1:8000. This 
 
 Do not put Stripe secret keys or other private credentials in Vite environment variables. Anything prefixed with VITE_ is delivered to the browser.
 
+If `VITE_API_URL` points at a separate (non-localhost) API origin, the build automatically adds that origin to the CSP `connect-src` directive in every page; without it the browser would block all API calls. Same-origin and localhost builds are unaffected.
+
 ## Hosting
 
 Supported production deployments are Windows + Caddy (`deployment/windows/`) and Linux + Caddy (`deployment/linux/`). GitHub Pages remains disabled because a separate Pages origin would require a publicly reachable API and an explicit CORS configuration.
