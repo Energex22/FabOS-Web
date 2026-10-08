@@ -7,6 +7,11 @@
 //
 // Callers must use the helper that matches the unit of the value they already
 // have. Never divide or multiply by 100 inline at a render site.
+//
+// `parseTotals` (src/api.js) is the exception: it normalizes a totals payload
+// from either convention (`*_cents` or dollars) into integer cents, so the
+// Phase 3 totals-preview endpoint and the createOrder response can be rendered
+// through the same code regardless of which unit the backend used.
 
 export function centsToDollars(cents){
  return Number(cents||0)/100

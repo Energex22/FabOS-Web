@@ -190,6 +190,88 @@ export async function getAdminUsers(){return request('/api/v1/admin/users')}
 export async function getAdminPermissions(){return request('/api/v1/admin/permissions')}
 export async function getAdminSettings(){return request('/api/v1/admin/settings')}
 export async function updateAdminSetting(key,value){return request('/api/v1/admin/settings',{method:'PUT',body:JSON.stringify({key,value})})}
+// ---------------------------------------------------------------------------
+// Phase 3 money handoffs. CONTRACT NOTES — the backend worker lands these
+// Phase 3 money-handoff contracts (verified against the backend branch):
+//   POST /api/v1/customer/orders/preview   {items, shippingAddress, notes}
+//       -> {items, totals:{subtotal, shipping, tax, total, currency}} (dollars)
+//   GET  /api/v1/admin/orders/{id}   -> {order, next_step{step,label,detail},
+//                                        invoices[], invoice?, invoice_id?, ...}
+//   POST /api/v1/admin/orders/{id}/invoice   {} -> {invoice_id, created, invoice}
+//   POST /api/v1/admin/invoices/{id}/payments   {amount_cents, method, reference}
+//       -> {invoice_id, recorded_cents, invoice, items, payments}
+// ---------------------------------------------------------------------------
+/**
+ * Normalize a totals payload to integer cents. Accepts `*_cents` fields
+ * (integer cents) or plain `subtotal|items|tax|shipping|total` fields (dollars,
+ * the convention the createOrder response uses). Returns null when no usable
+ * total is present.
+ */
+export function parseTotals(data){
+ const t=data&&typeof data==='object'?(data.totals??data):null
+ if(!t||typeof t!=='object')return null
+ const cents=k=>{const v=Number(t[k]);return Number.isFinite(v)?Math.max(0,Math.round(v)):null}
+ const dollars=k=>{const v=Number(t[k]);return Number.isFinite(v)?Math.max(0,Math.round(v*100)):null}
+ const total=cents('total_cents')??dollars('total')
+ if(total==null)return null
+ return {
+  itemsCents:cents('items_cents')??cents('subtotal_cents')??dollars('items')??dollars('subtotal')??0,
+  taxCents:cents('tax_cents')??dollars('tax')??0,
+  shippingCents:cents('shipping_cents')??dollars('shipping')??0,
+  totalCents:total
+ }
+}
+/** Machine-readable next-step state from an admin order-detail payload.
+ * The backend serves next_step as {step, label, detail}; tolerate a bare
+ * string for older shapes. */
+export function extractNextStep(data){
+ if(!data||typeof data!=='object')return ''
+ const raw=data.next_step??data.order?.next_step??data.nextStep??data.next_action??''
+ const step=raw&&typeof raw==='object'?raw.step??raw.label??'':raw
+ return String(step||'').trim().toLowerCase()
+}
+/** Human label for a next-step state; unknown states are title-cased, never hidden. */
+export function nextStepLabel(step){
+ const map={
+  awaiting_payment:'Awaiting payment',pending_payment:'Awaiting payment',unpaid:'Awaiting payment',
+  ready_for_production:'Ready for production',paid:'Ready for production',confirmed:'Ready for production',
+  awaiting_proof:'Awaiting proof approval',in_production:'In production',printing:'In production',
+  awaiting_fulfillment:'Ready to ship',shipped:'Shipped',delivered:'Delivered',
+  completed:'Completed',cancelled:'Cancelled'
+ }
+ const raw=String(step||'').trim().toLowerCase()
+ if(!raw)return '—'
+ if(map[raw])return map[raw]
+ return raw.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+}
+/**
+ * Production-start gate for an order. Returns:
+ *   'awaiting_payment' — known unpaid: the UI must disable "Start jobs".
+ *   'terminal'         — completed/cancelled: no production action at all.
+ *   'ready'            — known ready for production.
+ *   'unknown'          — not enough signal: keep the action enabled and let the
+ *                        backend (which validates server-side) be the safety net.
+ */
+export function orderPaymentGate(data){
+ const step=extractNextStep(data)
+ if(['awaiting_payment','pending_payment','unpaid'].includes(step))return 'awaiting_payment'
+ if(['ready_for_production','paid','confirmed'].includes(step))return 'ready'
+ const status=String(data?.order?.status??data?.status??'').trim().toLowerCase()
+ if(['pending','new','unpaid','awaiting_payment'].includes(status))return 'awaiting_payment'
+ if(['completed','cancelled'].includes(status))return 'terminal'
+ return 'unknown'
+}
+export async function getAdminOrder(orderId){
+ return request('/api/v1/admin/orders/'+encodeURIComponent(orderId))
+}
+export async function createAdminInvoiceFromOrder(orderId){
+ const data=await request('/api/v1/admin/orders/'+encodeURIComponent(orderId)+'/invoice',{method:'POST',body:JSON.stringify({})})
+ return data?.invoice??data
+}
+export async function recordAdminInvoicePayment(invoiceId,{amount_cents,method='',reference=''}={}){
+ const data=await request('/api/v1/admin/invoices/'+encodeURIComponent(invoiceId)+'/payments',{method:'POST',body:JSON.stringify({amount_cents,method,reference})})
+ return data?.payment??data
+}
 export async function getAdminAiStatus(){return request('/api/v1/admin/ai/status')}
 export async function sendAdminAiMessage(message,context){return request('/api/v1/admin/ai/chat',{method:'POST',body:JSON.stringify({message,context})})}
 export async function getAdminMarketingDashboard(){return request('/api/v1/admin/marketing/dashboard')}
@@ -262,6 +344,8 @@ export const customerApi={
   markRead:markCustomerNotificationRead,
   markAllRead:markAllCustomerNotificationsRead
  },
+ // Phase 3: read-only binding totals preview. Same payload shape as createOrder.
+ orderTotalsPreview:(payload)=>request('/api/v1/customer/orders/preview',{method:'POST',body:JSON.stringify(payload||{})}),
  updateProfile:updateCustomerProfile,
  generateCad:generateCustomerCad,
  cadJobs:getCustomerCadJobs,

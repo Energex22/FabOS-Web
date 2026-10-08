@@ -74,3 +74,9 @@
 .key-setting-input span{color:rgba(255,255,255,.5);font-size:12px}
 .key-setting-msg{color:#ffb6b6}
 .key-setting-msg.ok{color:#8df0ae}
+
+/* Phase 3: disabled "Start jobs" state, order-detail notes */
+.table-button:disabled{opacity:.55;cursor:not-allowed}
+.table-button:disabled:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.13)}
+.workspace-note{margin-top:10px;font-size:12px;color:#8df0ae}
+.workspace-hint{display:block;margin-top:8px;font-size:11px;color:rgba(255,255,255,.5);line-height:1.5}
