@@ -1,7 +1,7 @@
 
 import React,{useEffect,useState} from 'react'
 import {Brain,RefreshCw,Save,Package,Factory,Store,Settings,Activity} from 'lucide-react'
-import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message} from './api.js'
+import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message,getAdminOrder,extractNextStep,createAdminInvoiceFromOrder,recordAdminInvoicePayment,nextStepLabel,orderPaymentGate} from './api.js'
 import {formatCents} from './money.js'
 import './admin-workspaces.css'
 
@@ -81,7 +81,85 @@ function SettingsPage(){
  const keys=Object.keys(data?.settings||{}),hasValidity=Object.prototype.hasOwnProperty.call(data?.settings||{},'quote_validity_days')
  return <Shell kicker="SYSTEM" title="Settings center" description="Browser access to validated shop settings." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}
  <div className="subsection key-settings"><p className="admin-kicker">KEY SETTINGS</p>{hasValidity?<div className="key-setting"><div><strong>Quote validity period</strong><small>Days a newly sent quote stays valid before it expires (Phase 0 decision D5 — default 14). Applies when a quote is sent; quotes already sent keep their own expiry date.</small></div><div className="key-setting-input"><input type="number" min={1} max={365} value={validity} onChange={e=>{setValidity(e.target.value);setValidityMsg('')}} aria-label="Quote validity period in days"/><span>days</span><button className="admin-primary" onClick={saveValidity} disabled={busy}>Save</button></div>{validityMsg&&<small className={'key-setting-msg'+(validityMsg==='Saved.'?' ok':'')}>{validityMsg}</small>}</div>:<div className="workspace-empty">The quote_validity_days setting is not exposed by this API version yet.</div>}</div>
+ <IntegrationsSection data={data} busy={busy} setBusy={setBusy} onSaved={load} onError={setError}/>
  <div className="subsection"><p className="admin-kicker">ADVANCED — ALL SETTINGS</p>{keys.length?<div className="settings-editor"><label>Setting<select value={selected} onChange={e=>setSelected(e.target.value)}>{keys.map(k=><option key={k}>{k}</option>)}</select></label><label>Value<textarea value={value} onChange={e=>setValue(e.target.value)} rows={5}/></label><button className="admin-primary" onClick={save} disabled={busy}><Save size={15}/> Save setting</button></div>:<div className="workspace-empty">No settings exposed.</div>}</div></Shell>
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — Integrations section (Part A). Rendered from the settings metadata
+// the backend serves, so new integration keys appear here without frontend
+// changes. Secret values use masked inputs: the API returns a "configured" /
+// empty indicator, never plaintext — the value is never displayed, and an
+// empty submit keeps the existing value (nothing is sent). This section lives
+// inside SettingsPage, which is only reachable from the team-gated admin
+// console, so it inherits exactly the same admin gate as every other setting.
+// ---------------------------------------------------------------------------
+const SECRET_KEY_HINT=/(secret|api_key|apikey|token|credential|password|private_key)/i
+const INTEGRATION_KEY_HINT=/(resend|smtp|stripe|square|twilio|webhook|oauth|provider)/i
+function humanizeSettingKey(key){
+ return String(key||'')
+  .replace(/^(marketing|integration)_/,'')
+  .replace(/_/g,' ')
+  .replace(/\b\w/g,c=>c.toUpperCase())
+  .replace(/\bApi\b/g,'API').replace(/\bAi\b/g,'AI').replace(/\bSmtp\b/g,'SMTP').replace(/\bUrl\b/g,'URL')
+}
+function secretConfigured(value){
+ // The backend masks secrets as {"configured": bool} (never plaintext).
+ if(value&&typeof value==='object')return value.configured===true
+ const v=String(value??'').trim().toLowerCase()
+ if(!v||v==='false'||v==='0'||v==='not set'||v==='unset')return false
+ return true
+}
+function integrationEntries(data){
+ const meta=data?.metadata||{},settings=data?.settings||{}
+ const groups=Object.entries(meta)
+ const describe=key=>{
+  const raw=groups.reduce((found,[,g])=>found??(g&&typeof g==='object'?g[key]:undefined),undefined)
+  if(raw&&typeof raw==='object')return {key,description:String(raw.description||raw.label||''),secret:raw.secret===true||String(raw.secret||'').toLowerCase()==='true'||SECRET_KEY_HINT.test(key)}
+  return {key,description:String(raw||''),secret:SECRET_KEY_HINT.test(key)}
+ }
+ // Preferred: a dedicated integrations metadata group served by the backend.
+ const group=groups.find(([name])=>/integrat/i.test(String(name)))
+ if(group){
+  return Object.entries(group[1]||{}).map(([key])=>describe(key))
+ }
+ // Fallback: collect integration/secret-ish keys from any metadata group so
+ // the section still renders on an API that hasn't added the group yet.
+ const seen=new Set(),entries=[]
+ for(const [,g] of groups)for(const key of Object.keys(g||{})){
+  if(seen.has(key))continue
+  if(INTEGRATION_KEY_HINT.test(key)||SECRET_KEY_HINT.test(key)){seen.add(key);entries.push(describe(key))}
+ }
+ // Include secret-ish integration values the backend masks even when metadata
+ // lacks them (e.g. a brand-new secret key with no description yet).
+ for(const key of Object.keys(settings)){
+  if(!seen.has(key)&&SECRET_KEY_HINT.test(key)&&/(resend|stripe|twilio|smtp|webhook)/i.test(key)){seen.add(key);entries.push({key,description:'',secret:true})}
+ }
+ return entries
+}
+function IntegrationRow({entry,value,onSaved,onError,busy,setBusy}){
+ const secret=entry.secret
+ const [input,setInput]=useState(secret?'':String(value??''))
+ const [msg,setMsg]=useState('')
+ useEffect(()=>{setInput(secret?'':String(value??''))},[secret,value])
+ const configured=secretConfigured(value)
+ const save=async()=>{
+  if(secret&&!String(input).trim()){setMsg('Left empty — the existing value is kept.');return}
+  setBusy(true);setMsg('')
+  try{
+   await updateAdminSetting(entry.key,String(input))
+   if(secret)setInput('')
+   setMsg('Saved.')
+   await onSaved()
+  }catch(e){const m=e?.message||'Could not save.';setMsg(m);onError(m)}
+  finally{setBusy(false)}
+ }
+ return <div className="key-setting"><div><strong>{humanizeSettingKey(entry.key)}</strong>{entry.description&&<small>{entry.description}</small>}{secret&&<small>{configured?<span className="pill">Configured</span>:<span className="pill">Not set</span>}{configured?' A new value replaces it. Leave empty to keep the current value.':' Enter the key to enable this integration.'}</small>}</div><div className="key-setting-input">{secret?<input type="password" autoComplete="new-password" value={input} onChange={e=>{setInput(e.target.value);setMsg('')}} placeholder={configured?'•••••••• (new value)':'Paste the secret key'} aria-label={humanizeSettingKey(entry.key)}/>:<input value={input} onChange={e=>{setInput(e.target.value);setMsg('')}} aria-label={humanizeSettingKey(entry.key)}/>}<button className="admin-primary" onClick={save} disabled={busy}>Save</button></div>{msg&&<small className={'key-setting-msg'+(msg==='Saved.'?' ok':'')}>{msg}</small>}</div>
+}
+function IntegrationsSection({data,busy,setBusy,onSaved,onError}){
+ if(!data)return null
+ const entries=integrationEntries(data)
+ return <div className="subsection key-settings"><p className="admin-kicker">INTEGRATIONS</p>{entries.length?entries.map(entry=><IntegrationRow key={entry.key} entry={entry} value={data?.settings?.[entry.key]} onSaved={onSaved} onError={onError} busy={busy} setBusy={setBusy}/>):<div className="workspace-empty">No integration settings are exposed by this API version yet. They will appear here automatically once the backend serves them.</div>}</div>
 }
 
 function AI(){
@@ -103,7 +181,7 @@ function Invoices(){
  const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[selected,setSelected]=useState(null)
  const load=async()=>{setBusy(true);try{setData(await getAdminInvoices());setError('')}catch(e){setError(e.message)}finally{setBusy(false)}};useEffect(()=>{load()},[])
  const open=async id=>{setBusy(true);try{setSelected(await getAdminInvoice(id))}catch(e){setError(e.message)}finally{setBusy(false)}}
- return <Shell kicker="BILLING" title="Invoices & payments" description="Review invoices and payment history without leaving the operations console." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.invoices||[]} columns={[{key:'invoice_number',label:'Invoice',render:r=><strong>{r.invoice_number||r.number||r.id}</strong>},{key:'customer_name',label:'Customer',render:r=>r.customer_name||r.customer_email||r.customer_id||'—'},{key:'status',label:'Status',render:r=><span className="pill">{r.status||'—'}</span>},{key:'total_cents',label:'Total',render:r=>formatCents(r.total_cents||r.amount_cents)},{key:'due_at',label:'Due',render:r=>date(r.due_at)},{key:'action',label:'Details',render:r=><button className="table-button" onClick={()=>open(r.id)}>View</button>}]}/>{selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">INVOICE DETAIL</p><h3>{selected.invoice?.invoice_number||selected.invoice?.number||selected.invoice?.id}</h3></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div><FieldList fields={[['Status',selected.invoice?.status||'—'],['Customer',selected.invoice?.customer_name||selected.invoice?.customer_email||'—'],['Order',selected.invoice?.order_number||'—'],['Total',formatCents(selected.invoice?.total_cents)],['Paid',formatCents(selected.invoice?.paid_cents)],['Balance',formatCents(selected.invoice?.balance_cents)],['Issued',date(selected.invoice?.created_at)],['Due',date(selected.invoice?.due_at)]]}/>{selected.items?.length>0&&<><p className="admin-kicker">LINE ITEMS</p><Table rows={selected.items} columns={[{key:'description',label:'Item',render:r=><strong>{r.description||'Item'}</strong>},{key:'quantity',label:'Qty'},{key:'unit',label:'Unit price',render:r=>formatCents(r.unit_price_cents)},{key:'line',label:'Line total',render:r=>formatCents(Number(r.unit_price_cents||0)*Number(r.quantity||0))}]}/></>}{selected.payments?.length>0&&<><p className="admin-kicker">PAYMENTS</p><Table rows={selected.payments} columns={[{key:'paid_at',label:'Date',render:r=>date(r.paid_at)},{key:'method',label:'Method'},{key:'reference',label:'Reference',render:r=>r.reference||'—'},{key:'amount',label:'Amount',render:r=>formatCents(r.amount_cents)}]}/></>}</div>}</Shell>
+ return <Shell kicker="BILLING" title="Invoices & payments" description="Review invoices and payment history without leaving the operations console." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.invoices||[]} columns={[{key:'invoice_number',label:'Invoice',render:r=><strong>{r.invoice_number||r.number||r.id}</strong>},{key:'customer_name',label:'Customer',render:r=>r.customer_name||r.customer_email||r.customer_id||'—'},{key:'status',label:'Status',render:r=><span className="pill">{r.status||'—'}</span>},{key:'total_cents',label:'Total',render:r=>formatCents(r.total_cents||r.amount_cents)},{key:'due_at',label:'Due',render:r=>date(r.due_at)},{key:'action',label:'Details',render:r=><button className="table-button" onClick={()=>open(r.id)}>View</button>}]}/>{selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">INVOICE DETAIL</p><h3>{selected.invoice?.invoice_number||selected.invoice?.number||selected.invoice?.id}</h3></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div><FieldList fields={[['Status',selected.invoice?.status||'—'],['Customer',selected.invoice?.customer_name||selected.invoice?.customer_email||'—'],['Order',selected.invoice?.order_number||'—'],['Total',formatCents(selected.invoice?.total_cents)],['Paid',formatCents(selected.invoice?.paid_cents)],['Balance',formatCents(selected.invoice?.balance_cents)],['Issued',date(selected.invoice?.created_at)],['Due',date(selected.invoice?.due_at)]]}/>{selected.items?.length>0&&<><p className="admin-kicker">LINE ITEMS</p><Table rows={selected.items} columns={[{key:'description',label:'Item',render:r=><strong>{r.description||'Item'}</strong>},{key:'quantity',label:'Qty'},{key:'unit',label:'Unit price',render:r=>formatCents(r.unit_price_cents)},{key:'line',label:'Line total',render:r=>formatCents(Number(r.unit_price_cents||0)*Number(r.quantity||0))}]}/></>}{selected.payments?.length>0&&<><p className="admin-kicker">PAYMENTS</p><Table rows={selected.payments} columns={[{key:'paid_at',label:'Date',render:r=>date(r.paid_at)},{key:'method',label:'Method'},{key:'reference',label:'Reference',render:r=>r.reference||'—'},{key:'amount',label:'Amount',render:r=>formatCents(r.amount_cents)}]}/></>}<div className="subsection"><h3>Record a payment</h3><RecordPaymentForm invoiceId={selected.invoice?.id} onDone={()=>open(selected.invoice.id)}/></div></div>}</Shell>
 }
 
 function Fulfillment(){
@@ -172,18 +250,82 @@ function QCWorkspace(){
  </Shell>
 }
 
+// ---------------------------------------------------------------------------
+// Phase 3 — admin order detail: the money-handoff flow (order → invoice →
+// payment → production) entirely in the web console. The next step shown here
+// comes from the backend's machine-readable next-step state; "Start jobs" is
+// disabled with an explanatory label while the order awaits payment, and the
+// backend's server-side state validation remains the safety net on every call.
+// ---------------------------------------------------------------------------
+function RecordPaymentForm({invoiceId,onDone}){
+ const [amount,setAmount]=useState(''),[method,setMethod]=useState(''),[reference,setReference]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false)
+ const submit=async e=>{
+  e.preventDefault()
+  const cents=Math.round(Number(amount)*100)
+  if(!Number.isFinite(cents)||cents<=0){setMsg('Enter a payment amount greater than $0.');return}
+  setBusy(true);setMsg('')
+  try{await recordAdminInvoicePayment(invoiceId,{amount_cents:cents,method:method.trim(),reference:reference.trim()});setAmount('');setMethod('');setReference('');setMsg('Saved.');await onDone()}
+  catch(err){setMsg(err?.message||'Could not record the payment.')}
+  finally{setBusy(false)}
+ }
+ return <form className="settings-editor" onSubmit={submit}><p className="admin-kicker">RECORD PAYMENT</p><label>Amount (USD)<input type="number" min="0.01" step="0.01" value={amount} onChange={e=>{setAmount(e.target.value);setMsg('')}} required/></label><label>Method<input value={method} onChange={e=>setMethod(e.target.value)} placeholder="Card, cash, check…"/></label><label>Reference<input value={reference} onChange={e=>setReference(e.target.value)} placeholder="Transaction ID / memo"/></label><div><button className="admin-primary" disabled={busy}>{busy?'Saving…':'Record payment'}</button></div>{msg&&<small className={'key-setting-msg'+(msg==='Saved.'?' ok':'')}>{msg}</small>}</form>
+}
+
+function AdminOrderDetail({orderId,onClose,onStart,working}){
+ const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('')
+ const load=async()=>{
+  setBusy(true)
+  try{
+   const detail=await getAdminOrder(orderId)
+   let invoice=detail?.invoice||null
+   const invoiceId=invoice?.id||detail?.invoice_id||''
+   if(!invoice&&invoiceId){try{invoice=(await getAdminInvoice(invoiceId))?.invoice||{id:invoiceId}}catch{invoice={id:invoiceId}}}
+   setData({...detail,invoice,invoice_id:invoiceId});setError('')
+  }catch(e){setError(e?.message||'Could not load the order.')}
+  finally{setBusy(false)}
+ }
+ useEffect(()=>{load()},[orderId])
+ const createInvoice=async()=>{
+  setBusy(true);setNotice('')
+  try{const invoice=await createAdminInvoiceFromOrder(orderId);setNotice(invoice?.invoice_number||invoice?.number?`Invoice ${invoice.invoice_number||invoice.number} created.`:'Invoice created.');await load()}
+  catch(e){setNotice(e?.message||'Could not create the invoice.')}
+  finally{setBusy(false)}
+ }
+ const order=data?.order||{},invoice=data?.invoice||null,invoiceId=data?.invoice_id||invoice?.id||''
+ const gate=orderPaymentGate({status:order.status,next_step:extractNextStep(data)})
+ const step=extractNextStep(data)
+ const nextLabel=step?nextStepLabel(step):gate==='awaiting_payment'?'Awaiting payment':gate==='ready'?'Ready for production':gate==='terminal'?nextStepLabel(order.status):''
+ return <div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">ORDER DETAIL</p><h3>{order.order_number||orderId}</h3><small>{order.customer_name||order.customer_email||''}</small></div><button className="table-button" onClick={onClose}>Close</button></div>
+  {error&&<div className="workspace-error">{error}</div>}
+  {!data&&busy&&<div className="workspace-empty">Loading…</div>}
+  {data&&<><FieldList fields={[['Status',order.status||'—'],['Next step',nextLabel||'—'],['Customer',order.customer_name||order.customer_email||'—'],['Total',formatCents(order.total_cents)],['Placed',date(order.created_at)]]}/>
+  <div className="subsection"><h3>Money handoff</h3>{invoice||invoiceId?<><FieldList fields={[['Invoice',invoice?.invoice_number||invoice?.number||invoiceId],['Status',invoice?.status||'—'],['Total',formatCents(invoice?.total_cents)],['Paid',formatCents(invoice?.paid_cents)],['Balance',formatCents(invoice?.balance_cents)]]}/>{invoiceId&&<RecordPaymentForm invoiceId={invoiceId} onDone={load}/>}</>:<><div className="workspace-empty">No invoice yet for this order.</div><div className="workspace-actions"><button className="admin-primary" disabled={busy} onClick={createInvoice}>{busy?'Working…':'Create invoice'}</button></div></>}{notice&&<p className="workspace-note">{notice}</p>}</div>
+  <div className="subsection"><h3>Production</h3>{gate==='terminal'?<div className="workspace-empty">This order is {nextStepLabel(order.status).toLowerCase()} — no production action available.</div>:gate==='awaiting_payment'?<div className="workspace-actions"><button className="admin-primary" disabled title="This order is awaiting payment.">Needs payment first</button></div>:<div className="workspace-actions"><button className="admin-primary" disabled={working||busy} onClick={()=>onStart(order.id||orderId)}>Start jobs</button></div>}<small className="workspace-hint">Production start is validated server-side as well — a failed state check returns a clear error.</small></div></>}
+ </div>
+}
+
 function Operations({dashboard,onRefresh,busy}){
- const [error,setError]=useState(''),[working,setWorking]=useState(null),[targets,setTargets]=useState({}),[probe,setProbe]=useState({})
+ const [error,setError]=useState(''),[working,setWorking]=useState(null),[targets,setTargets]=useState({}),[probe,setProbe]=useState({}),[orderId,setOrderId]=useState(null)
  const run=async(key,fn)=>{setWorking(key);try{const d=await fn();if(d?.result)setProbe(p=>({...p,[key]:d.result}));await onRefresh();setError('')}catch(e){setError(e.message)}finally{setWorking(null)}}
  const start=async id=>run('order-'+id,()=>startAdminProduction(id))
  const preflight=id=>run('probe-'+id,()=>adminPrinterPreflight(id))
  const preheat=(id)=>run('heat-'+id,()=>adminPrinterPreheat(id,targets[id]?.hotend||null,targets[id]?.bed||null))
  const action=(id,a)=>{if(a==='cancel'&&!window.confirm('Cancel the active print on this printer?'))return;run(a+'-'+id,()=>adminPrinterAction(id,a))}
+ // Phase 3: "Start jobs" renders from the order's payment gate. Awaiting payment
+ // → disabled with an explanatory label; terminal → nothing; unknown → enabled
+ // with the backend's server-side validation as the safety net.
+ const productionCell=r=>{
+  const gate=orderPaymentGate({status:r.status,next_step:r.next_step})
+  if(gate==='terminal')return <span>—</span>
+  if(gate==='awaiting_payment')return <button className="table-button" disabled title="This order is awaiting payment.">Needs payment first</button>
+  return <button className="table-button" disabled={working} onClick={()=>start(r.id)}>Start jobs</button>
+ }
  return <Shell kicker="MANUFACTURING" title="Operations control" description="Bring production, printers, materials and order actions into the browser." onRefresh={onRefresh} busy={busy||!!working}>
   {error&&<div className="workspace-error">{error}</div>}
   <div className="workspace-cards"><div className="mini-card"><strong>{dashboard?.production?.active_jobs||0}</strong><span>Active jobs</span></div><div className="mini-card"><strong>{dashboard?.production?.printing_jobs||0}</strong><span>Printing</span></div><div className="mini-card"><strong>{dashboard?.printers?.online||0}/{dashboard?.printers?.total||0}</strong><span>Printers online</span></div><div className="mini-card"><strong>{dashboard?.inventory?.low_filament||0}</strong><span>Low filament</span></div><div className="mini-card"><strong>{dashboard?.business?.pending_qc||0}</strong><span>QC pending</span></div></div>
   <div className="subsection"><h3>Production queue</h3><Table rows={dashboard?.production?.jobs||[]} columns={[{key:'product_name',label:'Job'},{key:'order_number',label:'Order'},{key:'printer_name',label:'Printer'},{key:'spool_name',label:'Material'},{key:'status',label:'Status'}]}/></div>
-  <div className="subsection"><h3>Recent orders</h3><Table rows={dashboard?.recent_orders||[]} columns={[{key:'order_number',label:'Order'},{key:'customer_name',label:'Customer'},{key:'status',label:'Status'},{key:'total_cents',label:'Total',render:r=>formatCents(r.total_cents)},{key:'action',label:'Production',render:r=>!['completed','cancelled'].includes(String(r.status).toLowerCase())?<button className="table-button" disabled={working} onClick={()=>start(r.id)}>Start jobs</button>:<span>—</span>}]}/></div>
+  <div className="subsection"><h3>Recent orders</h3><Table rows={dashboard?.recent_orders||[]} columns={[{key:'order_number',label:'Order',render:r=><button className="table-button" onClick={()=>setOrderId(r.id)}><strong>{r.order_number}</strong></button>},{key:'customer_name',label:'Customer'},{key:'status',label:'Status'},{key:'total_cents',label:'Total',render:r=>formatCents(r.total_cents)},{key:'action',label:'Production',render:productionCell}]}/></div>
+  {orderId&&<AdminOrderDetail key={orderId} orderId={orderId} onClose={()=>{setOrderId(null);onRefresh()}} onStart={start} working={working}/>}
   <div className="subsection"><h3>Printers</h3><Table rows={dashboard?.printers?.items||[]} columns={[
    {key:'name',label:'Printer',render:r=><div><strong>{r.name}</strong><small>{r.model||'—'} · {r.connection_mode||'local'}</small></div>},
    {key:'status',label:'Status',render:r=><span className="pill">{r.status||r.octoprint_state_text||'Unknown'}</span>},
