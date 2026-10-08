@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from 'react'
 import {ArrowRight,Box,Check,CircleDot,LogIn,Menu,Move3d,ShoppingCart,Sun,Moon,X} from 'lucide-react'
 import {createRoot} from 'react-dom/client'
+import {NotificationBell} from './notifications-ui.jsx'
 import {cartCount,readCart} from './cart.js'
 import {getPublicCatalog,catalogImageUrl} from './api.js'
 import {formatDollars} from './money.js'
@@ -25,7 +26,7 @@ function Header(){
   <div className="nv2-actions">
    <a className="nv2-login" href="/account.html"><LogIn size={16}/> Log In</a>
    <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle dark and light mode">{theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}</button>
-   <a className="nv2-cart" href="/checkout.html" aria-label={'Shopping cart, '+count+' items'}><ShoppingCart size={18}/>{count>0&&<span>{count}</span>}</a>
+   <NotificationBell/><a className="nv2-cart" href="/checkout.html" aria-label={'Shopping cart, '+count+' items'}><ShoppingCart size={18}/>{count>0&&<span>{count}</span>}</a>
    <button className="nv2-menu" onClick={()=>setOpen(v=>!v)} aria-label="Toggle navigation">{open?<X/>:<Menu/>}</button>
   </div>
  </header>
