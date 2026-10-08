@@ -47,16 +47,23 @@ export function NotificationBell({countFn,href='/notifications.html',onOpen=null
 
 // Deep-link resolution for a notification row. Proof events land on the proof
 // anchor (Phase 1 scroll behavior handles the reveal); everything else opens
-// the linked quote or order page.
+// the linked quote or order page. The API returns entity_type/entity_id plus a
+// deep_link; the entity fallback covers rows that carry no deep_link.
 export function deepLinkFor(n){
  const direct=n?.link_url||n?.url||n?.deep_link
  if(direct)return String(direct)
  const quoteId=n?.quote_id||n?.quoteId||''
  const orderId=n?.order_id||n?.orderId||''
- const kind=String(n?.event||n?.type||'').toLowerCase()
- const isProof=kind.includes('proof')||Boolean(n?.proof_id||n?.proofId)
+ const entityType=String(n?.entity_type||'').toLowerCase()
+ const entityId=n?.entity_id||''
+ const kind=String(n?.event_type||n?.event||n?.type||'').toLowerCase()
+ const isProof=kind.includes('proof')||Boolean(n?.proof_id||n?.proofId)||entityType==='proof'
+ // Proof rows need the quote id for the page URL; a bare proof entity_id is
+ // not a quote id, so it is not used here.
  if(isProof&&quoteId)return `/quote.html?id=${encodeURIComponent(quoteId)}#proof`
+ if(entityType==='quote'&&entityId)return `/quote.html?id=${encodeURIComponent(entityId)}`
  if(quoteId)return `/quote.html?id=${encodeURIComponent(quoteId)}`
+ if(entityType==='order'&&entityId)return `/order.html?id=${encodeURIComponent(entityId)}`
  if(orderId)return `/order.html?id=${encodeURIComponent(orderId)}`
  return ''
 }
