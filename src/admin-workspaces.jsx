@@ -1,7 +1,7 @@
 
 import React,{useEffect,useState} from 'react'
 import {Brain,RefreshCw,Save,Package,Factory,Store,Settings,Activity} from 'lucide-react'
-import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message,getAdminOrder,extractNextStep,createAdminInvoiceFromOrder,recordAdminInvoicePayment,nextStepLabel,orderPaymentGate} from './api.js'
+import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,updateAdminFulfillment,transitionAdminFulfillment,fulfillmentTransitions,fulfillmentStatusLabel,splitActionItems,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message,getAdminOrder,extractNextStep,createAdminInvoiceFromOrder,recordAdminInvoicePayment,nextStepLabel,orderPaymentGate} from './api.js'
 import {formatCents} from './money.js'
 import './admin-workspaces.css'
 
@@ -184,11 +184,36 @@ function Invoices(){
  return <Shell kicker="BILLING" title="Invoices & payments" description="Review invoices and payment history without leaving the operations console." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.invoices||[]} columns={[{key:'invoice_number',label:'Invoice',render:r=><strong>{r.invoice_number||r.number||r.id}</strong>},{key:'customer_name',label:'Customer',render:r=>r.customer_name||r.customer_email||r.customer_id||'—'},{key:'status',label:'Status',render:r=><span className="pill">{r.status||'—'}</span>},{key:'total_cents',label:'Total',render:r=>formatCents(r.total_cents||r.amount_cents)},{key:'due_at',label:'Due',render:r=>date(r.due_at)},{key:'action',label:'Details',render:r=><button className="table-button" onClick={()=>open(r.id)}>View</button>}]}/>{selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">INVOICE DETAIL</p><h3>{selected.invoice?.invoice_number||selected.invoice?.number||selected.invoice?.id}</h3></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div><FieldList fields={[['Status',selected.invoice?.status||'—'],['Customer',selected.invoice?.customer_name||selected.invoice?.customer_email||'—'],['Order',selected.invoice?.order_number||'—'],['Total',formatCents(selected.invoice?.total_cents)],['Paid',formatCents(selected.invoice?.paid_cents)],['Balance',formatCents(selected.invoice?.balance_cents)],['Issued',date(selected.invoice?.created_at)],['Due',date(selected.invoice?.due_at)]]}/>{selected.items?.length>0&&<><p className="admin-kicker">LINE ITEMS</p><Table rows={selected.items} columns={[{key:'description',label:'Item',render:r=><strong>{r.description||'Item'}</strong>},{key:'quantity',label:'Qty'},{key:'unit',label:'Unit price',render:r=>formatCents(r.unit_price_cents)},{key:'line',label:'Line total',render:r=>formatCents(Number(r.unit_price_cents||0)*Number(r.quantity||0))}]}/></>}{selected.payments?.length>0&&<><p className="admin-kicker">PAYMENTS</p><Table rows={selected.payments} columns={[{key:'paid_at',label:'Date',render:r=>date(r.paid_at)},{key:'method',label:'Method'},{key:'reference',label:'Reference',render:r=>r.reference||'—'},{key:'amount',label:'Amount',render:r=>formatCents(r.amount_cents)}]}/></>}<div className="subsection"><h3>Record a payment</h3><RecordPaymentForm invoiceId={selected.invoice?.id} onDone={()=>open(selected.invoice.id)}/></div></div>}</Shell>
 }
 
+// ---------------------------------------------------------------------------
+// Phase 4 — fulfillment detail: inspect the shipment, edit method / carrier /
+// tracking number / destination inline (PATCH), and advance the state. Only
+// the transitions the backend accepts from the current status get buttons;
+// backend transition errors are surfaced readably and the record reloads
+// after every successful change.
+// ---------------------------------------------------------------------------
+function FulfillmentDetail({id,onClose,onChanged}){
+ const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[form,setForm]=useState({method:'',carrier:'',tracking_number:'',destination:''})
+ const load=async()=>{setBusy(true);try{const d=await getAdminFulfillment(id);const f=d?.fulfillment||d||{};setData(d);setForm({method:f.method||'',carrier:f.carrier||'',tracking_number:f.tracking_number||f.tracking||'',destination:f.destination||''});setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
+ useEffect(()=>{load()},[id])
+ const save=async e=>{e.preventDefault();setBusy(true);setNotice('');setError('');try{await updateAdminFulfillment(id,{method:form.method.trim(),carrier:form.carrier.trim(),tracking_number:form.tracking_number.trim(),destination:form.destination.trim()});setNotice('Shipment details saved.');await load();if(onChanged)onChanged()}catch(e){setError('Could not save the shipment: '+(e?.message||'unknown error'))}finally{setBusy(false)}}
+ const advance=async to=>{setBusy(true);setNotice('');setError('');try{await transitionAdminFulfillment(id,to);setNotice('Status updated to '+fulfillmentStatusLabel(to)+'.');await load();if(onChanged)onChanged()}catch(e){setError('Could not change the status: '+(e?.message||'unknown error'))}finally{setBusy(false)}}
+ const f=data?.fulfillment||data||{}
+ const transitions=fulfillmentTransitions(f.status)
+ return <div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">FULFILLMENT DETAIL</p><h3>{f.order_number||f.order_id||id}</h3><small>{fulfillmentStatusLabel(f.status)}</small></div><button className="table-button" onClick={onClose}>Close</button></div>
+ {error&&<div className="workspace-error">{error}</div>}
+ {notice&&<div className="workspace-note">{notice}</div>}
+ {!data&&busy&&<div className="workspace-empty">Loading…</div>}
+ {data&&<><FieldList fields={[['Status',fulfillmentStatusLabel(f.status)],['Method',f.method||'—'],['Carrier',f.carrier||'—'],['Tracking',f.tracking_number||f.tracking||'—'],['Destination',f.destination||'—'],['Packed',date(f.packed_at)],['Shipped',date(f.shipped_at)],['Delivered',date(f.delivered_at)],['Picked up',date(f.picked_up_at)]]}/>
+ <div className="subsection"><h3>Edit shipment</h3><form className="inline-form" onSubmit={save}><input placeholder="Method (ship, pickup…)" value={form.method} onChange={e=>setForm({...form,method:e.target.value})} aria-label="Shipping method"/><input placeholder="Carrier" value={form.carrier} onChange={e=>setForm({...form,carrier:e.target.value})} aria-label="Carrier"/><input placeholder="Tracking number" value={form.tracking_number} onChange={e=>setForm({...form,tracking_number:e.target.value})} aria-label="Tracking number"/><input placeholder="Destination" value={form.destination} onChange={e=>setForm({...form,destination:e.target.value})} aria-label="Destination"/><button className="admin-primary" disabled={busy}>{busy?'Saving…':'Save'}</button></form></div>
+ {transitions.length>0?<div className="subsection"><h3>Advance status</h3><div className="button-row">{transitions.map(t=><button key={t.to_state} className="admin-primary" disabled={busy} onClick={()=>advance(t.to_state)}>{t.label}</button>)}</div><small className="workspace-hint">Only the transitions accepted from “{fulfillmentStatusLabel(f.status)}” are shown — the backend validates every change server-side too.</small></div>:<div className="workspace-empty">This shipment is {fulfillmentStatusLabel(f.status).toLowerCase()} — no further transitions.</div>}
+ </>}</div>
+}
+
 function Fulfillment(){
  const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[selected,setSelected]=useState(null)
  const load=async()=>{setBusy(true);try{setData(await getAdminFulfillments());setError('')}catch(e){setError(e.message)}finally{setBusy(false)}};useEffect(()=>{load()},[])
- const open=async id=>{setBusy(true);try{setSelected(await getAdminFulfillment(id))}catch(e){setError(e.message)}finally{setBusy(false)}}
- return <Shell kicker="FULFILLMENT" title="Shipping & fulfillment" description="Track fulfillment records and drill into shipment details from the browser." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.fulfillments||[]} columns={[{key:'order_number',label:'Order',render:r=><strong>{r.order_number||r.order_id||'—'}</strong>},{key:'status',label:'Status',render:r=><span className="pill">{r.status||'—'}</span>},{key:'carrier',label:'Carrier',render:r=>r.carrier||'—'},{key:'tracking_number',label:'Tracking',render:r=>r.tracking_number||r.tracking||'—'},{key:'shipped_at',label:'Shipped',render:r=>date(r.shipped_at)},{key:'action',label:'Details',render:r=><button className="table-button" onClick={()=>open(r.id)}>View</button>}]}/>{selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">FULFILLMENT DETAIL</p><h3>{selected.fulfillment?.order_number||selected.fulfillment?.order_id||selected.fulfillment?.id}</h3></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div><FieldList fields={[['Status',selected.fulfillment?.status||'—'],['Method',selected.fulfillment?.method||'—'],['Carrier',selected.fulfillment?.carrier||'—'],['Tracking',selected.fulfillment?.tracking_number||selected.fulfillment?.tracking||'—'],['Shipped',date(selected.fulfillment?.shipped_at)],['Delivered',date(selected.fulfillment?.delivered_at)]]}/></div>}</Shell>
+ const open=id=>setSelected({id,nonce:Date.now()})
+ return <Shell kicker="FULFILLMENT" title="Shipping & fulfillment" description="Track fulfillment records, fix shipment details, and advance statuses from the browser." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.fulfillments||[]} columns={[{key:'order_number',label:'Order',render:r=><strong>{r.order_number||r.order_id||'—'}</strong>},{key:'status',label:'Status',render:r=><span className="pill">{fulfillmentStatusLabel(r.status)}</span>},{key:'carrier',label:'Carrier',render:r=>r.carrier||'—'},{key:'tracking_number',label:'Tracking',render:r=>r.tracking_number||r.tracking||'—'},{key:'shipped_at',label:'Shipped',render:r=>date(r.shipped_at)},{key:'action',label:'Details',render:r=><button className="table-button" onClick={()=>open(r.id)}>View</button>}]}/>{selected&&<FulfillmentDetail key={selected.nonce} id={selected.id} onClose={()=>setSelected(null)} onChanged={load}/>}</Shell>
 }
 
 function Health(){
@@ -225,11 +250,13 @@ function DesignVault(){
  </Shell>
 }
 
-function QCWorkspace(){
+function QCWorkspace({qcFocus}){
  const [data,setData]=useState(null),[selected,setSelected]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('')
  const load=async()=>{setBusy(true);try{setData(await getAdminQc());setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
  useEffect(()=>{load()},[])
  const open=async id=>{setBusy(true);try{const d=await getAdminQcDetail(id);const inspection=d.inspection||{};let items=[];try{items=JSON.parse(inspection.checklist_json||'[]')}catch{};setSelected({...inspection,checklist:inspection.checklist||items,notes:inspection.notes||''});setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
+ // Phase 5 — deep-linking an action item opens the inspection directly.
+ useEffect(()=>{if(qcFocus?.id)open(qcFocus.id)},[qcFocus?.nonce])
  const save=async status=>{if(!selected)return;setBusy(true);try{await updateAdminQc(selected.id,{items:selected.checklist||[],notes:selected.notes||'',status});await open(selected.id);await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
  const reconcile=async()=>{setBusy(true);try{await reconcileAdminQc();await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
  return <Shell kicker="QUALITY" title="QC inspections" description="Review completed production inspections and record pass, rework, or pending disposition without duplicating manufacturing rules in the browser." onRefresh={load} busy={busy}>
@@ -304,8 +331,9 @@ function AdminOrderDetail({orderId,onClose,onStart,working}){
  </div>
 }
 
-function Operations({dashboard,onRefresh,busy}){
+function Operations({dashboard,onRefresh,busy,orderFocus}){
  const [error,setError]=useState(''),[working,setWorking]=useState(null),[targets,setTargets]=useState({}),[probe,setProbe]=useState({}),[orderId,setOrderId]=useState(null)
+ useEffect(()=>{if(orderFocus?.id)setOrderId(orderFocus.id)},[orderFocus?.nonce])
  const run=async(key,fn)=>{setWorking(key);try{const d=await fn();if(d?.result)setProbe(p=>({...p,[key]:d.result}));await onRefresh();setError('')}catch(e){setError(e.message)}finally{setWorking(null)}}
  const start=async id=>run('order-'+id,()=>startAdminProduction(id))
  const preflight=id=>run('probe-'+id,()=>adminPrinterPreflight(id))
@@ -344,4 +372,16 @@ function Operations({dashboard,onRefresh,busy}){
  </Shell>
 }
 
-export function AdminWorkspaces({active,dashboard,onRefresh,busy,onOpenQuote,quoteFocus}){if(active==='operations')return <Operations dashboard={dashboard} onRefresh={onRefresh} busy={busy}/>;if(active==='inventory')return <Inventory dashboard={dashboard}/>;if(active==='qc')return <QCWorkspace/>;if(active==='designs')return <DesignVault/>;if(active==='catalog')return <Catalog/>;if(active==='customers')return <Customers/>;if(active==='quotes')return <Quotes quoteFocus={quoteFocus}/>;if(active==='proofs')return <Proofs onOpenQuote={onOpenQuote}/>;if(active==='users')return <Users/>;if(active==='settings')return <SettingsPage/>;if(active==='invoices')return <Invoices/>;if(active==='fulfillment')return <Fulfillment/>;if(active==='health')return <Health/>;if(active==='ai')return <AI/>;if(active==='marketing')return <Marketing/>;return null}
+// ---------------------------------------------------------------------------
+// Phase 5 — full action center: the uncapped action-items list (?all=true),
+// split into "needs action" vs a collapsible "in progress" FYI section.
+// Every item is a button that deep-links to the right workspace,
+// pre-filtered to the entity (page/id come from the backend).
+// ---------------------------------------------------------------------------
+function Actions({items,onOpenItem}){
+ const {needsAction,inProgress}=splitActionItems(items)
+ const renderItem=a=><button className={'action '+(a.severity||'')} key={a.key||a.id||a.title} onClick={()=>onOpenItem&&onOpenItem(a)}><span>{a.title}</span><small>{a.detail}</small></button>
+ return <Shell kicker="ATTENTION" title="Action center" description="Everything that needs a human — newest signals included. Pick an item to open the right workspace on the right record.">{needsAction.length?<><p className="admin-kicker">NEEDS ACTION · {needsAction.length}</p><div className="action-list">{needsAction.map(renderItem)}</div></>:<div className="workspace-empty">Nothing needs action right now.</div>}{inProgress.length>0&&<details className="action-fyi"><summary>In progress · {inProgress.length} FYI — nothing to do</summary><div className="action-list">{inProgress.map(renderItem)}</div></details>}</Shell>
+}
+
+export function AdminWorkspaces({active,dashboard,onRefresh,busy,onOpenQuote,quoteFocus,orderFocus,qcFocus,onOpenActionItem}){if(active==='actions')return <Actions items={dashboard?.action_items||[]} onOpenItem={onOpenActionItem}/>;if(active==='operations')return <Operations dashboard={dashboard} onRefresh={onRefresh} busy={busy} orderFocus={orderFocus}/>;if(active==='inventory')return <Inventory dashboard={dashboard}/>;if(active==='qc')return <QCWorkspace qcFocus={qcFocus}/>;if(active==='designs')return <DesignVault/>;if(active==='catalog')return <Catalog/>;if(active==='customers')return <Customers/>;if(active==='quotes')return <Quotes quoteFocus={quoteFocus}/>;if(active==='proofs')return <Proofs onOpenQuote={onOpenQuote}/>;if(active==='users')return <Users/>;if(active==='settings')return <SettingsPage/>;if(active==='invoices')return <Invoices/>;if(active==='fulfillment')return <Fulfillment/>;if(active==='health')return <Health/>;if(active==='ai')return <AI/>;if(active==='marketing')return <Marketing/>;return null}
