@@ -6,3 +6,9 @@ button.action{width:100%;text-align:left;font:inherit;color:inherit;cursor:point
 button.action:hover{background:#14231d;border-left-color:#ff3b30}
 button.action span{font:750 11px Urbanist}
 :root[data-theme="light"] button.action:hover{background:#e5efe9}
+/* Phase 5 — Action Center split: needs-action vs collapsible in-progress FYI */
+.action-section-kicker{font:800 10px Urbanist,Arial,sans-serif;letter-spacing:.18em;color:#00ff66;margin:0 0 8px}
+.action-view-all{margin-top:10px;display:flex;justify-content:flex-end}
+.panel .action-fyi{margin-top:12px;border:1px solid #20302a;background:#0d1512;border-radius:0}
+.panel .action-fyi>summary{padding:10px 12px;font:700 10px Urbanist,Arial,sans-serif;letter-spacing:.08em;color:#718078;list-style:none;text-transform:uppercase}
+.panel .action-fyi .action-list{padding:0 10px 10px}

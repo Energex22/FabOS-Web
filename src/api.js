@@ -107,13 +107,103 @@ export async function reviseCustomerCad(jobId,instruction,outputFormats=['stl','
 }
 
 export async function loginTeam(identifier,password){const data=await request('/api/v1/auth/team-login',{method:'POST',body:JSON.stringify({identifier,password})});const type=String(data?.user?.account_type||'').toLowerCase();if(!['employee','administrator'].includes(type))throw new Error('A team or administrator account is required.');if(data?.token){setToken(data.token);setAccountType(type)}return data}
-export async function getOperationsDashboard(){return request('/api/v1/admin/operations/dashboard')}
+export async function getOperationsDashboard({all=false}={}){return request('/api/v1/admin/operations/dashboard'+(all?'?all=true':''))}
+// Staff-scoped unread notification count for the admin header badge
+// (operations-hub notifications table). The customer unread-count endpoint
+// 409s for team sessions without a linked customer account, so staff gets
+// its own route. Shape-tolerant like the customer variant.
+export async function getStaffNotificationUnreadCount(){
+ const data=await request('/api/v1/admin/notifications/unread-count')
+ const n=data?.unread_count??data?.unread??data?.count??data
+ const parsed=Number(n)
+ return Number.isFinite(parsed)?Math.max(0,parsed):0
+}
+// ---------------------------------------------------------------------------
+// Phase 5 — attention system. The action-items endpoint accepts ?all=true
+// for the full uncapped list (contract); the default summary behavior
+// (capped) is unchanged, so callers that only want the overview preview
+// omit it. Every item carries page/id deep-link fields.
+// ---------------------------------------------------------------------------
+export async function getActionItems({all=false}={}){
+ const data=await getOperationsDashboard(all?{all:true}:{})
+ const items=data?.action_items
+ return Array.isArray(items)?items:[]
+}
+/** Split action items into staff-actionable work vs informational "in
+ * progress" FYI. Info-severity items are FYI; everything else needs action. */
+export function splitActionItems(items){
+ const needsAction=[],inProgress=[]
+ for(const item of items||[]){
+  if(String(item?.severity||'').toLowerCase()==='info')inProgress.push(item)
+  else needsAction.push(item)
+ }
+ return {needsAction,inProgress}
+}
 export async function runOperationsAutomation(){return request('/api/v1/admin/operations/automation/tick',{method:'POST'})}
 
 export async function getAdminInvoices(params={}){const q=new URLSearchParams();if(params.q)q.set('q',params.q);if(params.status)q.set('status',params.status);if(params.sort)q.set('sort',params.sort);if(params.desc!=null)q.set('desc',params.desc?'1':'0');const suffix=q.toString()?'?'+q.toString():'';return request('/api/v1/invoices'+suffix)}
 export async function getAdminInvoice(invoiceId){return request('/api/v1/invoices/'+encodeURIComponent(invoiceId))}
 export async function getAdminFulfillments(){return request('/api/v1/fulfillments')}
 export async function getAdminFulfillment(fulfillmentId){return request('/api/v1/fulfillments/'+encodeURIComponent(fulfillmentId))}
+// ---------------------------------------------------------------------------
+// Phase 4 — fulfillment management contract (backend lands these on the same
+// branch; build against the contract verbatim):
+//   PATCH /api/v1/admin/fulfillments/{id}   {method, carrier, tracking_number, destination}
+//   POST  /api/v1/admin/fulfillments/{id}/transition   {to_state}
+// Valid transitions: packed→shipped→delivered, packed→ready_for_pickup,
+// ready_for_pickup→picked_up. Anything else is a backend error, surfaced to
+// the caller with error.status set.
+// ---------------------------------------------------------------------------
+export async function updateAdminFulfillment(fulfillmentId,payload){
+ return request('/api/v1/admin/fulfillments/'+encodeURIComponent(fulfillmentId),{method:'PATCH',body:JSON.stringify(payload||{})})
+}
+export async function transitionAdminFulfillment(fulfillmentId,toState){
+ return request('/api/v1/admin/fulfillments/'+encodeURIComponent(fulfillmentId)+'/transition',{method:'POST',body:JSON.stringify({to_state:toState})})
+}
+/** Buttons to show on a fulfillment record: only the transitions the backend
+ * accepts from the current state. Unknown/terminal states get no buttons. */
+export function fulfillmentTransitions(status){
+ const s=String(status||'').toLowerCase()
+ if(s==='packed')return [{to_state:'shipped',label:'Mark shipped'},{to_state:'ready_for_pickup',label:'Mark ready for pickup'}]
+ if(s==='shipped')return [{to_state:'delivered',label:'Mark delivered'}]
+ if(s==='ready_for_pickup')return [{to_state:'picked_up',label:'Mark picked up'}]
+ return []
+}
+/** Customer/staff-friendly label for a fulfillment status; unknown states are
+ * title-cased, never hidden. */
+export function fulfillmentStatusLabel(status){
+ const map={packed:'Packed',shipped:'Shipped',delivered:'Delivered',ready_for_pickup:'Ready for pickup',picked_up:'Picked up'}
+ const raw=String(status||'').trim().toLowerCase()
+ if(!raw)return '—'
+ if(map[raw])return map[raw]
+ return raw.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+}
+// ---------------------------------------------------------------------------
+// Phase 4 — customer "Track your package" summary. Pure view of the
+// fulfillment object the backend attaches to the customer order payload:
+// {carrier, tracking_number, tracking_url, method, status, packed_at,
+//  shipped_at, delivered_at, picked_up_at, estimated_delivery} (null for
+// unknown values). Returns null when there is no fulfillment record — the
+// customer page hides the tracking card entirely in that case.
+// ---------------------------------------------------------------------------
+export function describeFulfillment(f){
+ if(!f||typeof f!=='object')return null
+ const status=String(f.status||'').toLowerCase()
+ const method=String(f.method||'').toLowerCase()
+ const isPickup=method.includes('pickup')||status==='ready_for_pickup'||status==='picked_up'
+ if(isPickup){
+  const steps=[{label:'Packed',at:f.packed_at||null},{label:'Ready for pickup',at:f.ready_for_pickup_at||null},{label:'Picked up',at:f.picked_up_at||null}]
+  let heading='Preparing your pickup',sub="We're getting your order ready for pickup."
+  if(status==='picked_up'){heading='Picked up';sub='Thanks for picking up your order.'}
+  else if(status==='ready_for_pickup'){heading='Ready for pickup';sub='Your order is packed and waiting — come pick it up.'}
+  return {kind:'pickup',status,heading,sub,steps}
+ }
+ const steps=[{label:'Packed',at:f.packed_at||null},{label:'Shipped',at:f.shipped_at||null},{label:'Delivered',at:f.delivered_at||null}]
+ let heading='Preparing your shipment',sub='Your order is packed and will ship soon.'
+ if(status==='delivered'){heading='Delivered';sub='Your package was delivered.'}
+ else if(status==='shipped'){heading='Your package is on its way';sub=''}
+ return {kind:'shipment',status,heading,sub,steps,carrier:f.carrier||'',trackingNumber:f.tracking_number||f.tracking||'',trackingUrl:f.tracking_url||null,estimatedDelivery:f.estimated_delivery||null}
+}
 export async function getSystemHealth(){return request('/api/v1/health')}
 
 export async function getAdminCatalog(q=''){const data=await request('/api/v1/admin/catalog?q='+encodeURIComponent(q||''));return data}
