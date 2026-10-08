@@ -1,0 +1,57 @@
+/* Phase 2 — in-app notification center + nav bell. Follows the Concept D
+   dark brand system in styles.css (green accent, dark panels). */
+
+/* Nav bell: icon button with an unread count badge. Works on every header
+   since it inherits the surrounding text color. */
+.notif-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:10px;color:inherit;border:0;background:none;border-radius:9px;line-height:1}
+.notif-bell:hover{color:var(--accent)}
+.notif-bell:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.notif-badge{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 4px;background:var(--accent-red,#ef4444);color:#fff;border-radius:999px;font-size:10px;font-weight:800;display:grid;place-items:center;line-height:1}
+
+/* Notification center page */
+.notif-shell{min-height:100vh;background:var(--paper);color:var(--ink)}
+.notif-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px clamp(20px,5vw,72px);border-bottom:1px solid var(--line);background:rgba(8,12,12,.9);position:sticky;top:0;z-index:10}
+.notif-nav .brand{font-style:italic;font-weight:800}
+.notif-main{max-width:860px;margin:0 auto;padding:44px clamp(20px,5vw,48px) 90px}
+.notif-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+.notif-head .eyebrow{margin-bottom:10px}
+.notif-head h1{margin:0;font-size:clamp(32px,4.5vw,52px);letter-spacing:-.04em;font-weight:800}
+.notif-head p{color:var(--muted);margin:8px 0 0;font-size:14px}
+.notif-actions{display:flex;gap:10px;align-items:center}
+.notif-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.notif-row{width:100%;text-align:left;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;background:var(--brand-panel,#0b1210);border:1px solid var(--line);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color .15s}
+.notif-row:hover{border-color:rgba(0,255,102,.4)}
+.notif-row.unread{border-color:rgba(0,255,102,.35);background:#0c1411}
+.notif-dot{width:9px;height:9px;border-radius:50%;background:transparent;margin-top:6px}
+.notif-row.unread .notif-dot{background:var(--accent,#00ff66);box-shadow:0 0 10px rgba(0,255,102,.6)}
+.notif-copy strong{display:block;font-size:15px;margin-bottom:5px;color:var(--ink)}
+.notif-copy p{margin:0;font-size:13px;color:var(--muted);line-height:1.55}
+.notif-meta{display:grid;gap:8px;justify-items:end;text-align:right}
+.notif-time{font-size:11px;color:var(--muted);white-space:nowrap}
+.notif-link-arrow{color:var(--muted)}
+.notif-row:hover .notif-link-arrow{color:var(--accent)}
+.notif-empty,.notif-state{background:var(--brand-panel,#0b1210);border:1px dashed var(--line);border-radius:14px;padding:70px 28px;text-align:center}
+.notif-empty h2,.notif-state h2{margin:14px 0 8px;font-size:24px;letter-spacing:-.02em}
+.notif-empty p,.notif-state p{color:var(--muted);margin:0 0 22px;font-size:14px}
+.notif-empty svg{color:var(--accent)}
+.notif-state .button{margin-top:6px}
+
+/* Account preferences — notification channel choice */
+.notif-prefs{display:grid;gap:10px;margin-top:14px}
+.notif-choice{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.notif-choice:hover:not(.disabled){border-color:rgba(0,255,102,.4)}
+.notif-choice.disabled{opacity:.55;cursor:not-allowed}
+.notif-choice input{margin-top:3px;accent-color:var(--accent,#00ff66)}
+.notif-choice strong{display:block;font-size:14px}
+.notif-choice small{display:block;color:var(--muted);font-size:12px;margin-top:3px;line-height:1.5}
+.notif-soon{display:inline-block;margin-left:8px;font-size:10px;font-weight:800;letter-spacing:.08em;color:#0b1010;background:#f5c518;border-radius:999px;padding:3px 9px;vertical-align:middle}
+.notif-prefs-actions{display:flex;align-items:center;gap:12px;margin-top:6px}
+.notif-saved{font-size:12px;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.notif-error{font-size:12px;color:var(--accent-red,#ff2d32)}
+
+@media(max-width:640px){
+ .notif-row{grid-template-columns:auto 1fr;padding:14px}
+ .notif-meta{grid-column:2;justify-items:start;text-align:left}
+ .notif-link-arrow{display:none}
+ .notif-head{flex-direction:column;align-items:flex-start}
+}
