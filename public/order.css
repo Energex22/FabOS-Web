@@ -14,3 +14,16 @@
 .order-quote-link{margin-top:10px!important}
 .order-quote-link a{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;color:#161616;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:560px){.order-proof-card{flex-direction:column;align-items:stretch}.order-proof-card .button{justify-content:center}}
+/* Phase 4 — customer "Track your package" card */
+.order-tracking-card{margin:16px 0 0;padding:25px 26px;border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:20px}
+.order-tracking-card p{margin:10px 0 0;color:#555;font-size:.86rem;line-height:1.55;max-width:560px}
+.tracking-line{display:flex;gap:12px;align-items:baseline;margin:12px 0 0;font-size:.84rem}
+.tracking-line .label{margin:0;min-width:130px}
+.tracking-line a{font-weight:750;color:#161616;text-decoration:underline;text-underline-offset:3px;word-break:break-all}
+.tracking-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+.tracking-step{padding:13px 14px;border:1px solid rgba(0,0,0,.1);border-radius:12px;background:#f7f7f4;display:grid;gap:4px}
+.tracking-step.done{background:#eef7ee;border-color:rgba(20,120,50,.25)}
+.tracking-step strong{font-size:.78rem}
+.tracking-step small{color:#777;font-size:.68rem}
+.tracking-step.done small{color:#2e7d43}
+@media(max-width:560px){.tracking-steps{grid-template-columns:1fr}.tracking-line .label{min-width:110px}}

@@ -9,15 +9,20 @@ const POLL_INTERVAL_MS=60000
 // Site-nav bell: shows the unread notification count for signed-in customers.
 // Fetches on mount, then re-fetches every 60s only while the tab is visible.
 // Hidden entirely for guests and when there is nothing unread.
-export function NotificationBell(){
+// Optional props: countFn (defaults to the customer unread-count fetcher),
+// href (link target, default /notifications.html), onOpen (if provided the
+// bell renders as a button that calls it instead of navigating — used by the
+// admin header to open the Actions workspace).
+export function NotificationBell({countFn,href='/notifications.html',onOpen=null}={}){
  const token=getToken()
+ const fetchCount=countFn||(()=>customerApi.notifications.unreadCount())
  const [count,setCount]=useState(null)
  useEffect(()=>{
   if(!token)return undefined
   let alive=true,timer=null
   const refresh=async()=>{
    try{
-    const n=await customerApi.notifications.unreadCount()
+    const n=await fetchCount()
     if(alive)setCount(Number(n)||0)
    }catch{
     // Keep a stale count; never render a phantom badge from an error.
@@ -32,8 +37,11 @@ export function NotificationBell(){
  },[token])
  if(!token)return null
  const shown=count>99?'99+':count
- return <a className="notif-bell" href="/notifications.html" aria-label={count>0?`Notifications, ${count} unread`:'Notifications'}>
-  <Bell size={18}/>{count>0&&<span className="notif-badge" aria-hidden="true">{shown}</span>}
+ const label=count>0?`Notifications, ${count} unread`:'Notifications'
+ const badge=count>0&&<span className="notif-badge" aria-hidden="true">{shown}</span>
+ if(onOpen)return <button type="button" className="notif-bell" onClick={onOpen} aria-label={label}><Bell size={18}/>{badge}</button>
+ return <a className="notif-bell" href={href} aria-label={label}>
+  <Bell size={18}/>{badge}
  </a>
 }
 
