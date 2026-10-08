@@ -150,7 +150,8 @@ export async function getAdminFulfillment(fulfillmentId){return request('/api/v1
 // branch; build against the contract verbatim):
 //   PATCH /api/v1/admin/fulfillments/{id}   {method, carrier, tracking_number, destination}
 //   POST  /api/v1/admin/fulfillments/{id}/transition   {to_state}
-// Valid transitions: packed→shipped→delivered, packed→ready_for_pickup,
+// Valid transitions (backend TRANSITION_EDGES): pending→packed/ready_for_pickup,
+// packed→shipped/ready_for_pickup, shipped→delivered,
 // ready_for_pickup→picked_up. Anything else is a backend error, surfaced to
 // the caller with error.status set.
 // ---------------------------------------------------------------------------
@@ -161,10 +162,20 @@ export async function transitionAdminFulfillment(fulfillmentId,toState){
  return request('/api/v1/admin/fulfillments/'+encodeURIComponent(fulfillmentId)+'/transition',{method:'POST',body:JSON.stringify({to_state:toState})})
 }
 /** Buttons to show on a fulfillment record: only the transitions the backend
- * accepts from the current state. Unknown/terminal states get no buttons. */
-export function fulfillmentTransitions(status){
- const s=String(status||'').toLowerCase()
- if(s==='packed')return [{to_state:'shipped',label:'Mark shipped'},{to_state:'ready_for_pickup',label:'Mark ready for pickup'}]
+ * accepts from the current state. Unknown/terminal states get no buttons.
+ * Pickup-method fulfillments skip "packed" (the backend rejects
+ * pickup+packed as an invalid method/status pairing), so pending pickup
+ * orders only offer "ready for pickup". */
+export function fulfillmentTransitions(status,method){
+ const s=String(status||'').toLowerCase(),m=String(method||'').toLowerCase()
+ if(s==='pending'){
+  if(m==='pickup')return [{to_state:'ready_for_pickup',label:'Mark ready for pickup'}]
+  return [{to_state:'packed',label:'Mark packed'},{to_state:'ready_for_pickup',label:'Mark ready for pickup'}]
+ }
+ if(s==='packed'){
+  if(m==='pickup')return [{to_state:'ready_for_pickup',label:'Mark ready for pickup'}]
+  return [{to_state:'shipped',label:'Mark shipped'},{to_state:'ready_for_pickup',label:'Mark ready for pickup'}]
+ }
  if(s==='shipped')return [{to_state:'delivered',label:'Mark delivered'}]
  if(s==='ready_for_pickup')return [{to_state:'picked_up',label:'Mark picked up'}]
  return []
@@ -203,6 +214,65 @@ export function describeFulfillment(f){
  if(status==='delivered'){heading='Delivered';sub='Your package was delivered.'}
  else if(status==='shipped'){heading='Your package is on its way';sub=''}
  return {kind:'shipment',status,heading,sub,steps,carrier:f.carrier||'',trackingNumber:f.tracking_number||f.tracking||'',trackingUrl:f.tracking_url||null,estimatedDelivery:f.estimated_delivery||null}
+}
+// ---------------------------------------------------------------------------
+// Final polish — compact shipment line for the customer orders LIST. Consumes
+// the same fulfillment object the detail endpoint attaches (customer_payload
+// shape: {carrier, tracking_number, tracking_url, method, status, packed_at,
+// shipped_at, delivered_at, picked_up_at, estimated_delivery}, nulls where
+// unknown). The list page renders this per order straight from the list
+// payload, so it never issues a per-order detail request (no N+1).
+//
+// Returns null when there is no fulfillment record (or it isn't an object,
+// or it is the all-null placeholder the backend attaches for orders without
+// one) — the orders list hides the shipment row entirely in those cases.
+// Otherwise: {kind, label, carrier, trackingNumber, trackingUrl, etaLabel}
+// where etaLabel is a short "Oct 12" date string ('' when unknown).
+// ---------------------------------------------------------------------------
+export function shortDateLabel(value){
+ const raw=String(value||'').trim()
+ if(!raw)return ''
+ let d
+ const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+ if(m)d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]))
+ else d=new Date(raw)
+ if(Number.isNaN(d.getTime()))return ''
+ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})
+}
+const FULFILLMENT_SIGNAL_KEYS=['status','carrier','tracking_number','tracking','tracking_url','method','packed_at','shipped_at','delivered_at','picked_up_at','ready_for_pickup_at','estimated_delivery']
+export function shipmentLine(f){
+ if(!f||typeof f!=='object')return null
+ // The backend's customer_payload shape keeps every key present with nulls
+ // for unknowns — an object where every key is null/empty is the "no
+ // fulfillment record" case, not a pre-shipment order.
+ const hasSignal=FULFILLMENT_SIGNAL_KEYS.some(k=>{const v=f[k];return v!==null&&v!==undefined&&String(v).trim()!==''})
+ if(!hasSignal)return null
+ const d=describeFulfillment(f)
+ if(!d)return null
+ const status=String(d.status||'').toLowerCase()
+ let label
+ if(d.kind==='pickup'){
+  label=status==='picked_up'?'Picked up':status==='ready_for_pickup'?'Ready for pickup':'Preparing your pickup'
+ }else{
+  label=status==='shipped'?'Shipped':status==='delivered'?'Delivered':'Preparing your shipment'
+ }
+ return {kind:d.kind,label,carrier:d.carrier||'',trackingNumber:d.trackingNumber||'',trackingUrl:d.trackingUrl||null,etaLabel:d.estimatedDelivery?shortDateLabel(d.estimatedDelivery):''}
+}
+// ---------------------------------------------------------------------------
+// Final polish — read a setting's human description from the settings
+// metadata the backend serves (groups of {key: {description|label}|text}).
+// Returns '' when the key has no metadata entry.
+// ---------------------------------------------------------------------------
+export function settingMetaDescription(data,key){
+ const groups=data?.metadata||{}
+ for(const [,g] of Object.entries(groups)){
+  if(!g||typeof g!=='object')continue
+  const raw=g[key]
+  if(raw===undefined)continue
+  if(raw&&typeof raw==='object')return String(raw.description||raw.label||'')
+  return String(raw||'')
+ }
+ return ''
 }
 export async function getSystemHealth(){return request('/api/v1/health')}
 
@@ -366,16 +436,22 @@ export async function getAdminAiStatus(){return request('/api/v1/admin/ai/status
 export async function sendAdminAiMessage(message,context){return request('/api/v1/admin/ai/chat',{method:'POST',body:JSON.stringify({message,context})})}
 export async function getAdminMarketingDashboard(){return request('/api/v1/admin/marketing/dashboard')}
 
-// Phase 2 notification center contract (customer-token auth; backend worker lands
-// these endpoints on the same branch). Shapes are tolerant: the list accepts a bare
-// array or {notifications:[...]}/{items:[...]}, and unread-count accepts {unread_count},
-// {unread} (the backend shape), or {count}. All functions throw with error.status
-// on HTTP failures via request().
+// ---------------------------------------------------------------------------
+// Phase 2 notification center contract (customer-token auth). Shapes are
+// tolerant: the list accepts a bare array or {notifications:[...]} /
+// {items:[...]}, and unread-count accepts {unread_count}, {unread} (the
+// backend shape), or {count}. Pagination follows the backend contract:
+// ?page=&per_page= (per_page capped at 100 server-side). The legacy
+// `limit` name is translated to per_page for backward compatibility — the
+// backend never honored `limit`/`offset`/`unread_only`, so sending them was a
+// silent no-op that capped the center at the default 25 rows. All functions
+// throw with error.status on HTTP failures via request().
+// ---------------------------------------------------------------------------
 export async function getCustomerNotifications(params={}){
  const q=new URLSearchParams()
- if(params.limit!=null)q.set('limit',String(params.limit))
- if(params.offset!=null)q.set('offset',String(params.offset))
- if(params.unreadOnly)q.set('unread_only','1')
+ const perPage=params.per_page??params.limit
+ if(perPage!=null)q.set('per_page',String(Math.max(1,Math.min(100,Math.floor(Number(perPage))||1))))
+ if(params.page!=null)q.set('page',String(Math.max(1,Math.floor(Number(params.page))||1)))
  const suffix=q.toString()?`?${q.toString()}`:''
  const data=await request('/api/v1/customer/notifications'+suffix)
  const list=data?.notifications??data?.items??data

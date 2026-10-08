@@ -87,3 +87,5 @@
 .action-fyi>summary{cursor:pointer;padding:11px 14px;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65;list-style:none}
 .action-fyi>summary::-webkit-details-marker{display:none}
 .action-fyi .action-list{padding:0 12px 12px}
+.price-input{width:110px;min-height:36px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:inherit;padding:7px 10px;font:inherit}
+.price-actions{align-items:center;margin-top:10px}

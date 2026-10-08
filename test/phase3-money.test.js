@@ -114,3 +114,15 @@ test('orderPaymentGate stays unknown without a payment signal (backend remains t
   assert.equal(orderPaymentGate({ order: { status: 'confirmed' } }), 'unknown')
   assert.equal(orderPaymentGate({}), 'unknown')
 })
+
+test('advanced settings editor never loads or saves secret masks', async () => {
+  // The API serves secret values as {"configured": bool} masks — loading one
+  // into the free-text editor would show "[object Object]", and saving would
+  // clobber the real secret (Resend/Stripe/Square keys). The editor must keep
+  // secret keys read-only; staff edits them in the Integrations section.
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync(new URL('../src/admin-workspaces.jsx', import.meta.url), 'utf8')
+  assert.match(src, /function secretKeySet\(data\)/, 'secretKeySet helper missing')
+  assert.match(src, /disabled=\{busy\|\|selectedIsSecret\}/, 'advanced editor Save is not disabled for secret keys')
+  assert.match(src, /Configured \(hidden\)/, 'secret mask indicator missing')
+})

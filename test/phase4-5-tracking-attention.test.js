@@ -50,7 +50,11 @@ test('transitionAdminFulfillment POSTs the to_state transition', async () => {
 })
 
 test('fulfillmentTransitions only offers the backend-valid next states', () => {
+  assert.deepEqual(fulfillmentTransitions('pending').map(t => t.to_state), ['packed', 'ready_for_pickup'])
+  assert.deepEqual(fulfillmentTransitions('pending', 'shipping').map(t => t.to_state), ['packed', 'ready_for_pickup'])
+  assert.deepEqual(fulfillmentTransitions('pending', 'pickup').map(t => t.to_state), ['ready_for_pickup'])
   assert.deepEqual(fulfillmentTransitions('packed').map(t => t.to_state), ['shipped', 'ready_for_pickup'])
+  assert.deepEqual(fulfillmentTransitions('packed', 'pickup').map(t => t.to_state), ['ready_for_pickup'])
   assert.deepEqual(fulfillmentTransitions('shipped').map(t => t.to_state), ['delivered'])
   assert.deepEqual(fulfillmentTransitions('ready_for_pickup').map(t => t.to_state), ['picked_up'])
   assert.deepEqual(fulfillmentTransitions('delivered'), [])

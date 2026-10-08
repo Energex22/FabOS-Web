@@ -1,7 +1,7 @@
 
 import React,{useEffect,useState} from 'react'
 import {Brain,RefreshCw,Save,Package,Factory,Store,Settings,Activity} from 'lucide-react'
-import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,updateAdminFulfillment,transitionAdminFulfillment,fulfillmentTransitions,fulfillmentStatusLabel,splitActionItems,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message,getAdminOrder,extractNextStep,createAdminInvoiceFromOrder,recordAdminInvoicePayment,nextStepLabel,orderPaymentGate} from './api.js'
+import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,updateAdminFulfillment,transitionAdminFulfillment,fulfillmentTransitions,fulfillmentStatusLabel,splitActionItems,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,settingMetaDescription,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message,getAdminOrder,extractNextStep,createAdminInvoiceFromOrder,recordAdminInvoicePayment,nextStepLabel,orderPaymentGate} from './api.js'
 import {formatCents} from './money.js'
 import './admin-workspaces.css'
 
@@ -51,15 +51,38 @@ function Proofs({onOpenQuote}){
 
 function Quotes({quoteFocus}){
  const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[selected,setSelected]=useState(null)
+ const [priceEdits,setPriceEdits]=useState({}),[savingPrices,setSavingPrices]=useState(false)
  const load=async()=>{setBusy(true);try{setData(await getAdminQuotes());setError('')}catch(e){setError(e.message)}finally{setBusy(false)}};useEffect(()=>{load()},[])
  const send=async r=>{setBusy(true);try{await updateAdminQuote(r.id,{status:'sent'});await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
  const open=async id=>{setBusy(true);try{setSelected(await getAdminQuote(id));setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
  useEffect(()=>{if(quoteFocus?.id)open(quoteFocus.id)},[quoteFocus?.nonce])
  const quote=selected?.quote||{}
+ // Pricing (Phase 5 "Quote needs pricing" flow): staff edit unit prices on
+ // draft/under_review quotes; saving PUTs the items and records a new quote
+ // version server-side. Sent+ quotes are read-only.
+ const priceable=['draft','under_review'].includes(String(quote.status||'').toLowerCase())
+ useEffect(()=>{setPriceEdits({})},[selected?.quote?.id])
+ const priceInput=r=>priceEdits[r.id]??(Number(r.unit_price_cents||0)/100).toFixed(2)
+ const dirtyPrices=(selected?.items||[]).some(r=>{const v=priceEdits[r.id];return v!=null&&Math.round(Number(v)*100)!==Number(r.unit_price_cents||0)})
+ const savePrices=async()=>{
+  const items=[]
+  for(const r of selected?.items||[]){
+   const raw=priceEdits[r.id]
+   if(raw==null){items.push(r);continue}
+   const cents=Math.round(Number(raw)*100)
+   if(!Number.isFinite(cents)||cents<0){setError('Prices must be $0 or more.');return}
+   items.push({...r,unit_price_cents:cents,pricing_mode:cents===Number(r.unit_price_cents||0)?r.pricing_mode:'manual'})
+  }
+  setSavingPrices(true);setError('')
+  try{await updateAdminQuote(quote.id,{items});await open(quote.id);await load()}
+  catch(e){setError(e.message||'Could not save prices.')}
+  finally{setSavingPrices(false)}
+ }
+ const sendOpen=async()=>{await send({id:quote.id});await open(quote.id)}
  return <Shell kicker="SALES" title="Quotes" description="Review and advance quote workflow." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.quotes||[]} columns={[{key:'quote_number',label:'Quote',render:r=><strong>{r.quote_number||r.id}</strong>},{key:'customer',label:'Customer',render:r=>r.customer_name||r.customer_email||r.customer_id||'—'},{key:'status',label:'Status',render:r=><span className="pill">{r.status}</span>},{key:'total',label:'Total',render:r=>formatCents(r.total_cents)},{key:'action',label:'Action',render:r=><div className="button-row">{r.status==='draft'&&<button className="table-button" onClick={()=>send(r)}>Send</button>}<button className="table-button" onClick={()=>open(r.id)}>View</button></div>}]}/>
- {selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">QUOTE DETAIL</p><h3>{quote.quote_number||quote.id}</h3><small>{quote.customer_name||quote.customer_email||'No customer'}</small></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div>
+ {selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">QUOTE DETAIL</p><h3>{quote.quote_number||quote.id}</h3><small>{quote.customer_name||quote.customer_email||'No customer'}</small></div><div className="button-row">{priceable&&<button className="admin-primary" disabled={busy||savingPrices} onClick={sendOpen}>Send quote</button>}<button className="table-button" onClick={()=>setSelected(null)}>Close</button></div></div>
   <FieldList fields={[['Status',quote.status||'—'],['Customer',quote.customer_name||quote.customer_email||'—'],['Total',formatCents(quote.total_cents)],['Created',date(quote.created_at)],['Expires',date(quote.expires_at)],['Notes',quote.notes||'—']]}/>
-  <div className="subsection"><h3>Line items</h3><Table rows={selected.items||[]} columns={[{key:'description',label:'Item',render:r=><div><strong>{r.description||r.product_name||'Item'}</strong><small>{r.product_name||''}</small></div>},{key:'quantity',label:'Qty'},{key:'unit',label:'Unit price',render:r=>formatCents(r.unit_price_cents)},{key:'line',label:'Line total',render:r=>formatCents(Number(r.unit_price_cents||0)*Number(r.quantity||0))}]}/></div>
+  <div className="subsection"><h3>Line items</h3><Table rows={selected.items||[]} columns={[{key:'description',label:'Item',render:r=><div><strong>{r.description||r.product_name||'Item'}</strong><small>{r.product_name||''}</small></div>},{key:'quantity',label:'Qty'},{key:'unit',label:'Unit price',render:r=>priceable?<input type="number" min="0" step="0.01" className="price-input" aria-label={'Unit price (USD) for '+(r.description||r.product_name||'item')} value={priceInput(r)} onChange={e=>setPriceEdits(p=>({...p,[r.id]:e.target.value}))}/>:formatCents(r.unit_price_cents)},{key:'line',label:'Line total',render:r=>formatCents((priceable?Math.round(Number(priceInput(r))*100):Number(r.unit_price_cents||0))*Number(r.quantity||0))}]}/>{priceable&&<div className="button-row price-actions"><button className="admin-primary" disabled={!dirtyPrices||savingPrices||busy} onClick={savePrices}>{savingPrices?'Saving…':'Save prices'}</button><small className="workspace-hint">Saving records a new version — the customer sees the updated total.</small></div>}</div>
   {(selected.versions||[]).length>0&&<div className="subsection"><h3>Version history</h3><Table rows={selected.versions} columns={[{key:'version',label:'Version',render:r=>'v'+(r.version||'—')},{key:'status',label:'Status',render:r=><span className="pill">{r.status||'—'}</span>},{key:'total',label:'Total',render:r=>formatCents(r.total_cents)},{key:'created_at',label:'Created',render:r=>date(r.created_at)}]}/></div>}
   <QuoteProofs quoteId={quote.id} quote={quote}/>
  </div>}
@@ -73,16 +96,29 @@ function Users(){
 }
 
 function SettingsPage(){
- const [data,setData]=useState(null),[selected,setSelected]=useState(''),[value,setValue]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[validity,setValidity]=useState(''),[validityMsg,setValidityMsg]=useState('')
- const load=async()=>{setBusy(true);try{const d=await getAdminSettings();setData(d);const k=Object.keys(d.settings||{})[0]||'';setSelected(k);setValue(String(d.settings?.[k]??''));setValidity(String(d.settings?.quote_validity_days??''));setValidityMsg('');setError('')}catch(e){setError(e.message)}finally{setBusy(false)}};useEffect(()=>{load()},[])
- useEffect(()=>{if(selected&&data)setValue(String(data.settings?.[selected]??''))},[selected])
+ const [data,setData]=useState(null),[selected,setSelected]=useState(''),[value,setValue]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[validity,setValidity]=useState(''),[validityMsg,setValidityMsg]=useState(''),[baseUrl,setBaseUrl]=useState(''),[baseUrlMsg,setBaseUrlMsg]=useState('')
+ const load=async()=>{setBusy(true);try{const d=await getAdminSettings();setData(d);const k=Object.keys(d.settings||{})[0]||'';const sk=secretKeySet(d);setSelected(k);setValue(sk.has(k)?'':String(d.settings?.[k]??''));setValidity(String(d.settings?.quote_validity_days??''));setValidityMsg('');setError('');setBaseUrl(String(d.settings?.public_base_url??''));setBaseUrlMsg('')}catch(e){setError(e.message)}finally{setBusy(false)}};useEffect(()=>{load()},[])
+ useEffect(()=>{if(selected&&data&&!secretKeySet(data).has(selected))setValue(String(data.settings?.[selected]??''))},[selected])
  const save=async()=>{setBusy(true);try{await updateAdminSetting(selected,value);await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
  const saveValidity=async()=>{const n=Number(String(validity).trim());if(!Number.isFinite(n)||Math.round(n)<1||Math.round(n)>365){setValidityMsg('Enter a whole number of days between 1 and 365.');return}setBusy(true);setValidityMsg('');try{await updateAdminSetting('quote_validity_days',String(Math.round(n)));setValidityMsg('Saved.');await load()}catch(e){setValidityMsg(e.message||'Could not save.')}finally{setBusy(false)}}
- const keys=Object.keys(data?.settings||{}),hasValidity=Object.prototype.hasOwnProperty.call(data?.settings||{},'quote_validity_days')
+ const saveBaseUrl=async()=>{
+  const next=String(baseUrl||'').trim()
+  setBusy(true);setBaseUrlMsg('')
+  try{await updateAdminSetting('public_base_url',next);setBaseUrlMsg('Saved.');await load()}
+  catch(e){setBaseUrlMsg(e.message||'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const keys=Object.keys(data?.settings||{}),hasValidity=Object.prototype.hasOwnProperty.call(data?.settings||{},'quote_validity_days'),hasBaseUrl=Object.prototype.hasOwnProperty.call(data?.settings||{},'public_base_url')
+ // Secret keys are read-only in the advanced free-text editor: the API only
+ // serves {"configured": bool} masks for them, so the textarea would show
+ // "[object Object]" and saving would clobber the real secret. Staff edits
+ // secrets in the Integrations section above, which leaves empty submissions
+ // untouched.
+ const secretKeys=secretKeySet(data),selectedIsSecret=secretKeys.has(selected),selectedSecretConfigured=selectedIsSecret&&secretConfigured(data?.settings?.[selected])
  return <Shell kicker="SYSTEM" title="Settings center" description="Browser access to validated shop settings." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}
- <div className="subsection key-settings"><p className="admin-kicker">KEY SETTINGS</p>{hasValidity?<div className="key-setting"><div><strong>Quote validity period</strong><small>Days a newly sent quote stays valid before it expires (Phase 0 decision D5 — default 14). Applies when a quote is sent; quotes already sent keep their own expiry date.</small></div><div className="key-setting-input"><input type="number" min={1} max={365} value={validity} onChange={e=>{setValidity(e.target.value);setValidityMsg('')}} aria-label="Quote validity period in days"/><span>days</span><button className="admin-primary" onClick={saveValidity} disabled={busy}>Save</button></div>{validityMsg&&<small className={'key-setting-msg'+(validityMsg==='Saved.'?' ok':'')}>{validityMsg}</small>}</div>:<div className="workspace-empty">The quote_validity_days setting is not exposed by this API version yet.</div>}</div>
+ <div className="subsection key-settings"><p className="admin-kicker">KEY SETTINGS</p>{hasValidity?<div className="key-setting"><div><strong>Quote validity period</strong><small>Days a newly sent quote stays valid before it expires (Phase 0 decision D5 — default 14). Applies when a quote is sent; quotes already sent keep their own expiry date.</small></div><div className="key-setting-input"><input type="number" min={1} max={365} value={validity} onChange={e=>{setValidity(e.target.value);setValidityMsg('')}} aria-label="Quote validity period in days"/><span>days</span><button className="admin-primary" onClick={saveValidity} disabled={busy}>Save</button></div>{validityMsg&&<small className={'key-setting-msg'+(validityMsg==='Saved.'?' ok':'')}>{validityMsg}</small>}</div>:<div className="workspace-empty">The quote_validity_days setting is not exposed by this API version yet.</div>}{hasBaseUrl?<div className="key-setting"><div><strong>Public base URL</strong><small>{settingMetaDescription(data,'public_base_url')||'Public address of the shop, e.g. https://fabvex.com. Used to build absolute links in customer notification emails. Leave empty to keep the current relative links.'}</small></div><div className="key-setting-input"><input value={baseUrl} onChange={e=>{setBaseUrl(e.target.value);setBaseUrlMsg('')}} placeholder="https://fabvex.com" aria-label="Public base URL"/><button className="admin-primary" onClick={saveBaseUrl} disabled={busy}>Save</button></div>{baseUrlMsg&&<small className={'key-setting-msg'+(baseUrlMsg==='Saved.'?' ok':'')}>{baseUrlMsg}</small>}</div>:<div className="workspace-empty">The public_base_url setting is not exposed by this API version yet.</div>}</div>
  <IntegrationsSection data={data} busy={busy} setBusy={setBusy} onSaved={load} onError={setError}/>
- <div className="subsection"><p className="admin-kicker">ADVANCED — ALL SETTINGS</p>{keys.length?<div className="settings-editor"><label>Setting<select value={selected} onChange={e=>setSelected(e.target.value)}>{keys.map(k=><option key={k}>{k}</option>)}</select></label><label>Value<textarea value={value} onChange={e=>setValue(e.target.value)} rows={5}/></label><button className="admin-primary" onClick={save} disabled={busy}><Save size={15}/> Save setting</button></div>:<div className="workspace-empty">No settings exposed.</div>}</div></Shell>
+ <div className="subsection"><p className="admin-kicker">ADVANCED — ALL SETTINGS</p>{keys.length?<div className="settings-editor"><label>Setting<select value={selected} onChange={e=>setSelected(e.target.value)}>{keys.map(k=><option key={k}>{k}</option>)}</select></label><label>Value{selectedIsSecret?<textarea value={selectedSecretConfigured?'Configured (hidden) — edit secrets in the Integrations section above.':'Not set — edit secrets in the Integrations section above.'} rows={5} disabled aria-label="Secret value (hidden)"/>:<textarea value={value} onChange={e=>setValue(e.target.value)} rows={5}/>}</label><button className="admin-primary" onClick={save} disabled={busy||selectedIsSecret}><Save size={15}/> Save setting</button></div>:<div className="workspace-empty">No settings exposed.</div>}{selectedIsSecret&&keys.length>0&&<small className="workspace-hint">Secret keys are read-only here — the API never returns their values. Use the Integrations section above to change them; leaving the field empty keeps the current value.</small>}</div></Shell>
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +145,19 @@ function secretConfigured(value){
  const v=String(value??'').trim().toLowerCase()
  if(!v||v==='false'||v==='0'||v==='not set'||v==='unset')return false
  return true
+}
+// Secret-bearing keys for the ADVANCED editor. The API serves secret values
+// as {"configured": bool} masks (never plaintext), so loading the mask into
+// the free-text textarea would show "[object Object]" — and saving it would
+// overwrite the real secret with that literal string, silently breaking the
+// integration (Resend/Stripe/Square keys) until someone re-pastes the real
+// value. Prefer the backend's explicit secret_keys list; fall back to the
+// mask shape so the guard holds even when the list is absent.
+function secretKeySet(data){
+ const fromApi=Array.isArray(data?.secret_keys)?data.secret_keys:null
+ if(fromApi)return new Set(fromApi)
+ const settings=data?.settings||{}
+ return new Set(Object.keys(settings).filter(k=>{const v=settings[k];return v&&typeof v==='object'&&Object.prototype.hasOwnProperty.call(v,'configured')}))
 }
 function integrationEntries(data){
  const meta=data?.metadata||{},settings=data?.settings||{}
@@ -177,10 +226,11 @@ function Marketing(){
  return <Shell kicker="MARKETING" title="Marketing & sales hub" description="Expose the provider-neutral marketing system already built into FabOS." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<div className="workspace-cards"><div className="mini-card"><strong>{data.posts?.length||0}</strong><span>Posts</span></div><div className="mini-card"><strong>{data.providers?.filter(p=>p.connected||p.enabled).length||0}</strong><span>Connected providers</span></div></div><div className="tag-list">{(data.providers||[]).map((p,i)=><span className="pill" key={p.id||i}>{p.name||p.provider||p.channel||'Provider'} · {p.connected||p.enabled?'connected':'not connected'}</span>)}</div><Table rows={data.posts||[]} columns={[{key:'title',label:'Post',render:r=><div><strong>{r.title||'Untitled'}</strong><small>{r.status||'draft'}</small></div>},{key:'scheduled_at',label:'Scheduled',render:r=>date(r.scheduled_at)},{key:'status',label:'Status'},{key:'action',label:'Action',render:r=>String(r.status).toLowerCase()==='draft'?<button className="table-button" onClick={()=>approve(r.id)}>Approve</button>:null}]}/><div className="workspace-actions"><button className="admin-ghost" onClick={queue} disabled={busy}><Activity size={15}/> Queue due posts</button></div></Shell>
 }
 
-function Invoices(){
+function Invoices({invoiceFocus}){
  const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[selected,setSelected]=useState(null)
  const load=async()=>{setBusy(true);try{setData(await getAdminInvoices());setError('')}catch(e){setError(e.message)}finally{setBusy(false)}};useEffect(()=>{load()},[])
  const open=async id=>{setBusy(true);try{setSelected(await getAdminInvoice(id))}catch(e){setError(e.message)}finally{setBusy(false)}}
+ useEffect(()=>{if(invoiceFocus?.id)open(invoiceFocus.id)},[invoiceFocus?.nonce])
  return <Shell kicker="BILLING" title="Invoices & payments" description="Review invoices and payment history without leaving the operations console." onRefresh={load} busy={busy}>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.invoices||[]} columns={[{key:'invoice_number',label:'Invoice',render:r=><strong>{r.invoice_number||r.number||r.id}</strong>},{key:'customer_name',label:'Customer',render:r=>r.customer_name||r.customer_email||r.customer_id||'—'},{key:'status',label:'Status',render:r=><span className="pill">{r.status||'—'}</span>},{key:'total_cents',label:'Total',render:r=>formatCents(r.total_cents||r.amount_cents)},{key:'due_at',label:'Due',render:r=>date(r.due_at)},{key:'action',label:'Details',render:r=><button className="table-button" onClick={()=>open(r.id)}>View</button>}]}/>{selected&&<div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">INVOICE DETAIL</p><h3>{selected.invoice?.invoice_number||selected.invoice?.number||selected.invoice?.id}</h3></div><button className="table-button" onClick={()=>setSelected(null)}>Close</button></div><FieldList fields={[['Status',selected.invoice?.status||'—'],['Customer',selected.invoice?.customer_name||selected.invoice?.customer_email||'—'],['Order',selected.invoice?.order_number||'—'],['Total',formatCents(selected.invoice?.total_cents)],['Paid',formatCents(selected.invoice?.paid_cents)],['Balance',formatCents(selected.invoice?.balance_cents)],['Issued',date(selected.invoice?.created_at)],['Due',date(selected.invoice?.due_at)]]}/>{selected.items?.length>0&&<><p className="admin-kicker">LINE ITEMS</p><Table rows={selected.items} columns={[{key:'description',label:'Item',render:r=><strong>{r.description||'Item'}</strong>},{key:'quantity',label:'Qty'},{key:'unit',label:'Unit price',render:r=>formatCents(r.unit_price_cents)},{key:'line',label:'Line total',render:r=>formatCents(Number(r.unit_price_cents||0)*Number(r.quantity||0))}]}/></>}{selected.payments?.length>0&&<><p className="admin-kicker">PAYMENTS</p><Table rows={selected.payments} columns={[{key:'paid_at',label:'Date',render:r=>date(r.paid_at)},{key:'method',label:'Method'},{key:'reference',label:'Reference',render:r=>r.reference||'—'},{key:'amount',label:'Amount',render:r=>formatCents(r.amount_cents)}]}/></>}<div className="subsection"><h3>Record a payment</h3><RecordPaymentForm invoiceId={selected.invoice?.id} onDone={()=>open(selected.invoice.id)}/></div></div>}</Shell>
 }
 
@@ -198,7 +248,7 @@ function FulfillmentDetail({id,onClose,onChanged}){
  const save=async e=>{e.preventDefault();setBusy(true);setNotice('');setError('');try{await updateAdminFulfillment(id,{method:form.method.trim(),carrier:form.carrier.trim(),tracking_number:form.tracking_number.trim(),destination:form.destination.trim()});setNotice('Shipment details saved.');await load();if(onChanged)onChanged()}catch(e){setError('Could not save the shipment: '+(e?.message||'unknown error'))}finally{setBusy(false)}}
  const advance=async to=>{setBusy(true);setNotice('');setError('');try{await transitionAdminFulfillment(id,to);setNotice('Status updated to '+fulfillmentStatusLabel(to)+'.');await load();if(onChanged)onChanged()}catch(e){setError('Could not change the status: '+(e?.message||'unknown error'))}finally{setBusy(false)}}
  const f=data?.fulfillment||data||{}
- const transitions=fulfillmentTransitions(f.status)
+ const transitions=fulfillmentTransitions(f.status,f.method)
  return <div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">FULFILLMENT DETAIL</p><h3>{f.order_number||f.order_id||id}</h3><small>{fulfillmentStatusLabel(f.status)}</small></div><button className="table-button" onClick={onClose}>Close</button></div>
  {error&&<div className="workspace-error">{error}</div>}
  {notice&&<div className="workspace-note">{notice}</div>}
@@ -384,4 +434,4 @@ function Actions({items,onOpenItem}){
  return <Shell kicker="ATTENTION" title="Action center" description="Everything that needs a human — newest signals included. Pick an item to open the right workspace on the right record.">{needsAction.length?<><p className="admin-kicker">NEEDS ACTION · {needsAction.length}</p><div className="action-list">{needsAction.map(renderItem)}</div></>:<div className="workspace-empty">Nothing needs action right now.</div>}{inProgress.length>0&&<details className="action-fyi"><summary>In progress · {inProgress.length} FYI — nothing to do</summary><div className="action-list">{inProgress.map(renderItem)}</div></details>}</Shell>
 }
 
-export function AdminWorkspaces({active,dashboard,onRefresh,busy,onOpenQuote,quoteFocus,orderFocus,qcFocus,onOpenActionItem}){if(active==='actions')return <Actions items={dashboard?.action_items||[]} onOpenItem={onOpenActionItem}/>;if(active==='operations')return <Operations dashboard={dashboard} onRefresh={onRefresh} busy={busy} orderFocus={orderFocus}/>;if(active==='inventory')return <Inventory dashboard={dashboard}/>;if(active==='qc')return <QCWorkspace qcFocus={qcFocus}/>;if(active==='designs')return <DesignVault/>;if(active==='catalog')return <Catalog/>;if(active==='customers')return <Customers/>;if(active==='quotes')return <Quotes quoteFocus={quoteFocus}/>;if(active==='proofs')return <Proofs onOpenQuote={onOpenQuote}/>;if(active==='users')return <Users/>;if(active==='settings')return <SettingsPage/>;if(active==='invoices')return <Invoices/>;if(active==='fulfillment')return <Fulfillment/>;if(active==='health')return <Health/>;if(active==='ai')return <AI/>;if(active==='marketing')return <Marketing/>;return null}
+export function AdminWorkspaces({active,dashboard,onRefresh,busy,onOpenQuote,quoteFocus,orderFocus,qcFocus,invoiceFocus,onOpenActionItem}){if(active==='actions')return <Actions items={dashboard?.action_items||[]} onOpenItem={onOpenActionItem}/>;if(active==='operations')return <Operations dashboard={dashboard} onRefresh={onRefresh} busy={busy} orderFocus={orderFocus}/>;if(active==='inventory')return <Inventory dashboard={dashboard}/>;if(active==='qc')return <QCWorkspace qcFocus={qcFocus}/>;if(active==='designs')return <DesignVault/>;if(active==='catalog')return <Catalog/>;if(active==='customers')return <Customers/>;if(active==='quotes')return <Quotes quoteFocus={quoteFocus}/>;if(active==='proofs')return <Proofs onOpenQuote={onOpenQuote}/>;if(active==='users')return <Users/>;if(active==='settings')return <SettingsPage/>;if(active==='invoices')return <Invoices invoiceFocus={invoiceFocus}/>;if(active==='fulfillment')return <Fulfillment/>;if(active==='health')return <Health/>;if(active==='ai')return <AI/>;if(active==='marketing')return <Marketing/>;return null}

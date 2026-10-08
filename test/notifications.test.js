@@ -56,11 +56,33 @@ test('notifications.list normalizes object and bare-array shapes', async () => {
   mockFetch(() => okJson({ notifications: [{ id: 'n1', title: 'Proof ready' }] }))
   let list = await getCustomerNotifications({ limit: 20 })
   assert.deepEqual(list, [{ id: 'n1', title: 'Proof ready' }])
-  assert.match(calls[0].url, /\/api\/v1\/customer\/notifications\?limit=20/)
+  assert.match(calls[0].url, /\/api\/v1\/customer\/notifications\?per_page=20/)
 
   mockFetch(() => okJson([{ id: 'n2' }]))
   list = await getCustomerNotifications()
   assert.deepEqual(list, [{ id: 'n2' }])
+})
+
+test('notifications.list uses the backend pagination contract (page/per_page)', async () => {
+  globalThis.localStorage = createStorage()
+  mockFetch(() => okJson({ notifications: [] }))
+  // `limit` is translated to per_page — the backend never honored `limit`,
+  // so the center previously showed only the default 25 rows.
+  await getCustomerNotifications({ limit: 100 })
+  assert.match(calls[0].url, /\/api\/v1\/customer\/notifications\?per_page=100/)
+  assert.doesNotMatch(calls[0].url, /limit=/)
+  assert.doesNotMatch(calls[0].url, /offset=/)
+  assert.doesNotMatch(calls[0].url, /unread_only=/)
+
+  mockFetch(() => okJson({ notifications: [] }))
+  await getCustomerNotifications({ per_page: 10, page: 3 })
+  assert.match(calls[0].url, /per_page=10/)
+  assert.match(calls[0].url, /page=3/)
+
+  // per_page is clamped to the server maximum of 100.
+  mockFetch(() => okJson({ notifications: [] }))
+  await getCustomerNotifications({ limit: 500 })
+  assert.match(calls[0].url, /per_page=100/)
 })
 
 test('notifications.unreadCount normalizes object and bare-number shapes', async () => {
