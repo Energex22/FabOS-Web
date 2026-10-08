@@ -193,6 +193,41 @@ export async function updateAdminSetting(key,value){return request('/api/v1/admi
 export async function getAdminAiStatus(){return request('/api/v1/admin/ai/status')}
 export async function sendAdminAiMessage(message,context){return request('/api/v1/admin/ai/chat',{method:'POST',body:JSON.stringify({message,context})})}
 export async function getAdminMarketingDashboard(){return request('/api/v1/admin/marketing/dashboard')}
+
+// Phase 2 notification center contract (customer-token auth; backend worker lands
+// these endpoints on the same branch). Shapes are tolerant: the list accepts a bare
+// array or {notifications:[...]}/{items:[...]}, and unread-count accepts {unread_count},
+// {unread} (the backend shape), or {count}. All functions throw with error.status
+// on HTTP failures via request().
+export async function getCustomerNotifications(params={}){
+ const q=new URLSearchParams()
+ if(params.limit!=null)q.set('limit',String(params.limit))
+ if(params.offset!=null)q.set('offset',String(params.offset))
+ if(params.unreadOnly)q.set('unread_only','1')
+ const suffix=q.toString()?`?${q.toString()}`:''
+ const data=await request('/api/v1/customer/notifications'+suffix)
+ const list=data?.notifications??data?.items??data
+ return Array.isArray(list)?list:[]
+}
+export async function getCustomerNotificationUnreadCount(){
+ const data=await request('/api/v1/customer/notifications/unread-count')
+ const n=data?.unread_count??data?.unread??data?.count??data
+ const parsed=Number(n)
+ return Number.isFinite(parsed)?Math.max(0,parsed):0
+}
+export async function markCustomerNotificationRead(notificationId){
+ await request(`/api/v1/customer/notifications/${encodeURIComponent(notificationId)}/read`,{method:'POST'})
+ return true
+}
+export async function markAllCustomerNotificationsRead(){
+ await request('/api/v1/customer/notifications/read-all',{method:'POST'})
+ return true
+}
+// Customer profile update: PATCH /api/v1/customer/me. Returns the updated customer.
+export async function updateCustomerProfile(payload){
+ return request('/api/v1/customer/me',{method:'PATCH',body:JSON.stringify(payload||{})})
+}
+
 export async function getAdminMarketingProviders(){return request('/api/v1/admin/marketing/providers')}
 export async function getAdminMarketingPosts(status,limit=100){const q=new URLSearchParams();if(status)q.set('status',status);q.set('limit',String(limit));return request('/api/v1/admin/marketing/posts?'+q.toString())}
 export async function approveAdminMarketingPost(postId){return request('/api/v1/admin/marketing/posts/'+encodeURIComponent(postId)+'/approve',{method:'POST'})}
@@ -221,6 +256,13 @@ export const customerApi={
  declineQuote:(quoteId)=>request(`/api/v1/customer/quotes/${encodeURIComponent(quoteId)}/decline`,{method:'POST'}),
  proofAction:(proofId,action,comment)=>{const path=action==='approve'?'approve':action==='request-changes'?'request-changes':'';if(!path)throw new Error('Unknown proof action.');return request(`/api/v1/customer/proofs/${encodeURIComponent(proofId)}/${path}`,{method:'POST',body:JSON.stringify({comment:comment||''})})},
  proofFile:(proofId)=>requestBlob(`/api/v1/customer/proofs/${encodeURIComponent(proofId)}/file`),
+ notifications:{
+  list:(params)=>getCustomerNotifications(params),
+  unreadCount:getCustomerNotificationUnreadCount,
+  markRead:markCustomerNotificationRead,
+  markAllRead:markAllCustomerNotificationsRead
+ },
+ updateProfile:updateCustomerProfile,
  generateCad:generateCustomerCad,
  cadJobs:getCustomerCadJobs,
  analyzeCadReference:analyzeCustomerCadReference,
