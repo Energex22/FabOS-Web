@@ -59,6 +59,23 @@ if (-not $SkipBuild) {
     } finally {
         Pop-Location
     }
+
+    Push-Location $FabOSDir
+    try {
+        $venvPython = Join-Path $FabOSDir ".venv\Scripts\python.exe"
+        if (-not (Test-Path -LiteralPath $venvPython)) {
+            Write-Host "Creating backend virtual environment..."
+            py -3 -m venv .venv
+            if ($LASTEXITCODE -ne 0) { throw "python -m venv failed." }
+        }
+        Write-Host "Installing backend dependencies..."
+        & $venvPython -m pip install --upgrade pip
+        if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed." }
+        & $venvPython -m pip install .
+        if ($LASTEXITCODE -ne 0) { throw "backend pip install failed." }
+    } finally {
+        Pop-Location
+    }
 }
 
 $envLines = @(
@@ -76,6 +93,15 @@ $envLines = @(
     "STRIPE_WEBHOOK_SECRET=",
     "STRIPE_SUCCESS_URL=https://$Domain/orders.html",
     "STRIPE_CANCEL_URL=https://$Domain/checkout.html",
+    "# Square (only if you take in-person payments; otherwise leave blank).",
+    "# SQUARE_ACCESS_TOKEN=",
+    "# SQUARE_LOCATION_ID=",
+    "# SQUARE_WEBHOOK_SIGNATURE_KEY=",
+    "# SQUARE_WEBHOOK_URL=",
+    "# Transactional email (Resend). Preferred: enter the key in the admin console",
+    "# under Settings > Integrations instead of putting it here. Env is a fallback.",
+    "# RESEND_API_KEY=",
+    "# RESEND_FROM_EMAIL=",
     "# Optional DuckDNS updater configuration.",
     "DUCKDNS_DOMAIN=",
     "DUCKDNS_TOKEN=",
@@ -118,8 +144,10 @@ Write-Host "Next:"
 Write-Host "  1. Configure DNS/router or Cloudflare Tunnel for $Domain."
 Write-Host "  2. Run the first-start owner setup in FabOS and change the bootstrap password."
 Write-Host "  3. Open Administration > Business Settings and select the business/tax state."
-Write-Host "  4. Open Administration > Marketing & Sales and enable only the marketplaces you use."
-Write-Host "  5. Add marketplace credentials only after creating those accounts."
-Write-Host "  6. Configure shipping, tax, catalog visibility and printers."
-Write-Host "  7. Add Stripe test credentials and configure the webhook before live payments."
-Write-Host "  8. Run the production acceptance/recovery checklist."
+Write-Host "  4. Open Settings > Integrations in the admin console and enter your Resend API key"
+Write-Host "     (for customer notification emails) plus Stripe/Square keys if not using server.env."
+Write-Host "  5. Open Administration > Marketing & Sales and enable only the marketplaces you use."
+Write-Host "  6. Add marketplace credentials only after creating those accounts."
+Write-Host "  7. Configure shipping, tax, catalog visibility and printers."
+Write-Host "  8. Add Stripe test credentials and configure the webhook before live payments."
+Write-Host "  9. Run the production acceptance/recovery checklist."
