@@ -54,7 +54,7 @@ async function requestBlob(path,options={}){
  return response.blob()
 }
 
-export async function getPublicCatalog(params={}){const search=new URLSearchParams();if(params.q)search.set('q',params.q);if(params.category&&params.category!=='All')search.set('category',params.category);if(params.sort)search.set('sort',params.sort);if(params.desc)search.set('desc','1');const suffix=search.toString()?`?${search.toString()}`:'';const data=await request(`/api/v1/catalog${suffix}`);return data.products||[]}
+export async function getPublicCatalog(params={}){const search=new URLSearchParams();if(params.q)search.set('q',params.q);if(params.category&&params.category!=='All')search.set('category',params.category);if(params.sort)search.set('sort',params.sort);if(params.desc)search.set('desc','1');if(params.designType)search.set('design_type',params.designType);const suffix=search.toString()?`?${search.toString()}`:'';const data=await request(`/api/v1/catalog${suffix}`);return data.products||[]}
 export async function getPublicProduct(productId){return request(`/api/v1/catalog/${encodeURIComponent(productId)}`)}
 export async function getCatalogCategories(){const data=await request('/api/v1/catalog/categories');return data.categories||[]}
 
@@ -73,6 +73,22 @@ export function cadArtifactUrl(artifact){
  if(/^https?:\/\//i.test(value)||value.startsWith('blob:'))return value
  if(value.startsWith('data:'))return ''
  return apiUrl(value)
+}
+/** Resolve a digital-download bearer link to an absolute URL. The backend
+ * serves download_url as a same-origin path (e.g.
+ * /api/v1/customer/downloads/{token}/file); apiUrl prefixes the configured
+ * API base the same way catalogImageUrl does. */
+export function digitalDownloadUrl(download){
+ if(!download)return ''
+ const value=String(download.download_url||download.url||'').trim()
+ if(!value)return ''
+ if(/^https?:\/\//i.test(value))return value
+ return apiUrl(value)
+}
+/** Human label for a product design type (3d_print / cnc / laser). */
+export function designTypeLabel(designType){
+ const map={'3d_print':'3D print','cnc':'CNC','laser':'Laser'}
+ return map[String(designType||'').toLowerCase()]||'Digital'
 }
 export async function loginCustomer(identifier,password){const data=await request('/api/v1/auth/login',{method:'POST',body:JSON.stringify({identifier,password})});if(data?.token){setToken(data.token);clearAccountType()}return data}
 export async function registerCustomer(name,email,password,phone=''){const data=await request('/api/v1/auth/register',{method:'POST',body:JSON.stringify({name,email,password,phone})});if(data?.token){setToken(data.token);clearAccountType()}return data}
@@ -278,6 +294,29 @@ export async function getSystemHealth(){return request('/api/v1/health')}
 
 export async function getAdminCatalog(q=''){const data=await request('/api/v1/admin/catalog?q='+encodeURIComponent(q||''));return data}
 export async function updateAdminStorefront(productId,payload){return request('/api/v1/admin/catalog/'+encodeURIComponent(productId)+'/storefront',{method:'PATCH',body:JSON.stringify(payload)})}
+// ---------------------------------------------------------------------------
+// Digital products (admin). CONTRACT NOTES — served by the FastAPI transport
+// (the WSGI adapter has no admin catalog surface; FastAPI is the production
+// transport):
+//   GET    /api/v1/admin/catalog/{id}/digital            -> {product_type, design_type, licenses[], files[]}
+//   PUT    /api/v1/admin/catalog/{id}/digital            {product_type, design_type, licenses[]} -> config
+//   POST   /api/v1/admin/catalog/{id}/digital/files      multipart files[] -> {files[]}
+//   DELETE /api/v1/admin/catalog/{id}/digital/files/{fileId}
+//   GET    /api/v1/admin/orders/{id}/downloads           -> {downloads[]}
+//   POST   /api/v1/admin/downloads/{tokenId}/revoke
+//   POST   /api/v1/admin/downloads/{tokenId}/regenerate -> {download}
+// ---------------------------------------------------------------------------
+export async function getAdminDigitalConfig(productId){return request('/api/v1/admin/catalog/'+encodeURIComponent(productId)+'/digital')}
+export async function updateAdminDigitalConfig(productId,payload){return request('/api/v1/admin/catalog/'+encodeURIComponent(productId)+'/digital',{method:'PUT',body:JSON.stringify(payload||{})})}
+export async function uploadAdminDigitalFiles(productId,files){
+ const formData=new FormData()
+ for(const file of (files||[]))formData.append('files',file,file?.name||'file')
+ return multipartRequest('/api/v1/admin/catalog/'+encodeURIComponent(productId)+'/digital/files',formData)
+}
+export async function deleteAdminDigitalFile(productId,fileId){return request('/api/v1/admin/catalog/'+encodeURIComponent(productId)+'/digital/files/'+encodeURIComponent(fileId),{method:'DELETE'})}
+export async function getAdminOrderDownloads(orderId){const data=await request('/api/v1/admin/orders/'+encodeURIComponent(orderId)+'/downloads');return data?.downloads||[]}
+export async function revokeAdminDownload(tokenId){return request('/api/v1/admin/downloads/'+encodeURIComponent(tokenId)+'/revoke',{method:'POST'})}
+export async function regenerateAdminDownload(tokenId){return request('/api/v1/admin/downloads/'+encodeURIComponent(tokenId)+'/regenerate',{method:'POST'})}
 export async function getAdminCustomers(q=''){return request('/api/v1/admin/customers?q='+encodeURIComponent(q||''))}
 export async function createAdminCustomer(payload){return request('/api/v1/admin/customers',{method:'POST',body:JSON.stringify(payload)})}
 export async function getAdminQuotes(params={}){const q=new URLSearchParams();if(params.q)q.set('q',params.q);if(params.status)q.set('status',params.status);if(params.group)q.set('group',params.group);const suffix=q.toString()?'?'+q.toString():'';return request('/api/v1/admin/quotes'+suffix)}
@@ -512,6 +551,9 @@ export const customerApi={
  },
  // Phase 3: read-only binding totals preview. Same payload shape as createOrder.
  orderTotalsPreview:(payload)=>request('/api/v1/customer/orders/preview',{method:'POST',body:JSON.stringify(payload||{})}),
+ // Digital products: purchased download tokens ("My downloads") and the
+ // bearer download links they carry.
+ downloads:async()=>{const data=await request('/api/v1/customer/downloads');return data?.downloads||[]},
  updateProfile:updateCustomerProfile,
  generateCad:generateCustomerCad,
  cadJobs:getCustomerCadJobs,
