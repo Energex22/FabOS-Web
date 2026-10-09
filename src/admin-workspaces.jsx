@@ -1,21 +1,77 @@
 
 import React,{useEffect,useState} from 'react'
-import {Brain,RefreshCw,Save,Package,Factory,Store,Settings,Activity} from 'lucide-react'
-import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,updateAdminFulfillment,transitionAdminFulfillment,fulfillmentTransitions,fulfillmentStatusLabel,splitActionItems,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,settingMetaDescription,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message,getAdminOrder,extractNextStep,createAdminInvoiceFromOrder,recordAdminInvoicePayment,nextStepLabel,orderPaymentGate} from './api.js'
+import {Brain,RefreshCw,Save,Package,Factory,Store,Settings,Activity,Download,Upload,X,Plus} from 'lucide-react'
+import {getAdminCatalog,getAdminCustomers,getAdminQuotes,getAdminQuote,getAdminUsers,getAdminPermissions,getAdminSettings,getAdminInvoices,getAdminInvoice,getAdminFulfillments,getAdminFulfillment,updateAdminFulfillment,transitionAdminFulfillment,fulfillmentTransitions,fulfillmentStatusLabel,splitActionItems,getSystemHealth,updateAdminStorefront,createAdminCustomer,updateAdminQuote,updateAdminSetting,settingMetaDescription,getAdminAiStatus,sendAdminAiMessage,getAdminMarketingDashboard,getAdminMarketingProviders,getAdminMarketingPosts,approveAdminMarketingPost,queueAdminMarketingPosts,startAdminProduction,getAdminDesigns,getAdminDesign,getAdminQc,getAdminQcDetail,updateAdminQc,reconcileAdminQc,adminPrinterPreflight,adminPrinterPreheat,adminPrinterAction,getAdminProofs,getAdminQuoteProofs,createAdminProof,uploadAdminProof,sendAdminProof,draft_proof_message,getAdminOrder,extractNextStep,createAdminInvoiceFromOrder,recordAdminInvoicePayment,nextStepLabel,orderPaymentGate,getAdminDigitalConfig,updateAdminDigitalConfig,uploadAdminDigitalFiles,deleteAdminDigitalFile} from './api.js'
 import {formatCents} from './money.js'
 import './admin-workspaces.css'
 
 const date=v=>v?new Date(v).toLocaleString():'—'
 function Shell({kicker,title,description,onRefresh,busy,children}){return <section className="workspace"><div className="workspace-head"><div><p className="admin-kicker">{kicker}</p><h2>{title}</h2><p>{description}</p></div>{onRefresh&&<button className="admin-ghost" onClick={onRefresh} disabled={busy}><RefreshCw size={15} className={busy?'spin':''}/> Refresh</button>}</div>{children}</section>}
-function Table({rows,columns,empty='Nothing to show.'}){if(!rows?.length)return <div className="workspace-empty">{empty}</div>;return <div className="workspace-table-wrap"><table className="workspace-table"><thead><tr>{columns.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={r.id||r.quote_number||r.username||i}>{columns.map(c=><td key={c.key}>{c.render?c.render(r):r[c.key]??'—'}</td>)}</tr>)}</tbody></table></div>}
+function Table({rows,columns,empty='Nothing to show.'}){if(!rows?.length)return <div className="workspace-empty">{empty}</div>;return <div className="workspace-table-wrap"><table className="workspace-table"><thead><tr>{columns.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={r.id||r.license_key||r.quote_number||r.username||i}>{columns.map(c=><td key={c.key}>{c.render?c.render(r,i):r[c.key]??'—'}</td>)}</tr>)}</tbody></table></div>}
 function FieldList({fields}){return <dl className="workspace-fields">{fields.map(([label,value])=><div className="workspace-field" key={label}><dt>{label}</dt><dd>{value??'—'}</dd></div>)}</dl>}
 
 function Catalog(){
- const [data,setData]=useState(null),[q,setQ]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const [data,setData]=useState(null),[q,setQ]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[digitalFor,setDigitalFor]=useState(null)
  const load=async()=>{setBusy(true);try{setData(await getAdminCatalog(q));setError('')}catch(e){setError(e.message)}finally{setBusy(false)}}
  useEffect(()=>{load()},[])
  const publish=async r=>{try{await updateAdminStorefront(r.product.id,{visibility:r.storefront?.visibility==='published'?'draft':'published'});await load()}catch(e){setError(e.message)}}
- return <Shell kicker="CATALOG" title="Products & storefront" description="Manage the catalog already backed by FabOS." onRefresh={load} busy={busy}><div className="workspace-toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search products…"/><button className="admin-primary" onClick={load}>Search</button></div>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.products||[]} columns={[{key:'name',label:'Product',render:r=><div><strong>{r.product?.name||r.product?.sku||r.product?.id}</strong><small>{r.product?.sku||'No SKU'} · {r.product?.category||'Other'}</small></div>},{key:'price',label:'Price',render:r=>formatCents(r.product?.price_cents)},{key:'visibility',label:'Visibility',render:r=><span className="pill">{r.storefront?.visibility||'draft'}</span>},{key:'ready',label:'Readiness',render:r=>r.storefront?.ready?'Ready':'Needs work'},{key:'action',label:'Action',render:r=><button className="table-button" onClick={()=>publish(r)}>{r.storefront?.visibility==='published'?'Unpublish':'Publish'}</button>}]}/></Shell>
+ const isDigital=r=>String(r.product?.product_type||'').toLowerCase()==='digital'
+ return <Shell kicker="CATALOG" title="Products & storefront" description="Manage the catalog already backed by FabOS." onRefresh={load} busy={busy}><div className="workspace-toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search products…"/><button className="admin-primary" onClick={load}>Search</button></div>{error&&<div className="workspace-error">{error}</div>}<Table rows={data?.products||[]} columns={[{key:'name',label:'Product',render:r=><div><strong>{r.product?.name||r.product?.sku||r.product?.id}</strong><small>{r.product?.sku||'No SKU'} · {r.product?.category||'Other'}{isDigital(r)&&' · Digital download'}</small></div>},{key:'price',label:'Price',render:r=>formatCents(r.product?.price_cents)},{key:'visibility',label:'Visibility',render:r=><span className="pill">{r.storefront?.visibility||'draft'}</span>},{key:'ready',label:'Readiness',render:r=>r.storefront?.ready?'Ready':'Needs work'},{key:'action',label:'Action',render:r=><div className="button-row"><button className="table-button" onClick={()=>setDigitalFor({id:r.product.id,name:r.product?.name||r.product?.sku})}><Download size={13}/> Digital</button><button className="table-button" onClick={()=>publish(r)}>{r.storefront?.visibility==='published'?'Unpublish':'Publish'}</button></div>}]}/>{digitalFor&&<DigitalSetup productId={digitalFor.id} productName={digitalFor.name} onClose={()=>setDigitalFor(null)} onSaved={load}/>}</Shell>
+}
+
+const DIGITAL_DESIGN_TYPES=[['3d_print','3D print'],['cnc','CNC'],['laser','Laser']]
+const dollarsToCents=v=>{const n=Number(String(v??'').trim());return Number.isFinite(n)&&n>=0?Math.round(n*100):null}
+// Digital product setup: product type + design type, license options
+// (personal vs commercial pricing), and the downloadable file attachments.
+// Allowed file extensions per design type are configured in Settings >
+// Digital products — the upload here validates against that config.
+function DigitalSetup({productId,productName,onClose,onSaved}){
+ const [config,setConfig]=useState(null),[busy,setBusy]=useState(true),[saving,setSaving]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState('')
+ const [productType,setProductType]=useState('digital'),[designType,setDesignType]=useState('3d_print')
+ const [licenses,setLicenses]=useState([{license_key:'personal',label:'Personal use',price:'15.00',active:true},{license_key:'commercial',label:'Commercial use',price:'45.00',active:true}])
+ const load=async()=>{setBusy(true);setError('');try{const data=await getAdminDigitalConfig(productId);setConfig(data);setProductType(data.product_type||'digital');setDesignType(data.design_type||'3d_print');if(Array.isArray(data.licenses)&&data.licenses.length)setLicenses(data.licenses.map(l=>({license_key:l.license_key,label:l.label,price:(Number(l.price_cents||0)/100).toFixed(2),active:l.active!==false})))}catch(e){setError(e.message||'Could not load digital settings.')}finally{setBusy(false)}}
+ useEffect(()=>{load()},[productId])
+ const updateLicense=(index,patch)=>setLicenses(list=>list.map((l,i)=>i===index?{...l,...patch}:l))
+ const addLicense=()=>setLicenses(list=>[...list,{license_key:'',label:'',price:'',active:true}])
+ const removeLicense=index=>setLicenses(list=>list.filter((_,i)=>i!==index))
+ const save=async()=>{
+  setSaving(true);setError('')
+  try{
+   const payload={product_type:productType,design_type:designType}
+   if(productType==='digital'){
+    payload.licenses=licenses.map((l,i)=>{
+     const key=String(l.license_key||'').trim().toLowerCase()
+     if(!key)throw new Error('Every license option needs a key (e.g. personal).')
+     const price_cents=dollarsToCents(l.price)
+     if(price_cents==null)throw new Error('License "'+key+'" needs a valid price of $0 or more.')
+     return {license_key:key,label:String(l.label||key).trim(),price_cents,active:l.active!==false,sort_order:i}
+    })
+   }
+   const data=await updateAdminDigitalConfig(productId,payload)
+   setConfig(data);setProductType(data.product_type||productType);setDesignType(data.design_type||designType)
+   if(onSaved)onSaved()
+  }catch(e){setError(e.message||'Could not save digital settings.')}finally{setSaving(false)}
+ }
+ const upload=async e=>{
+  const files=Array.from(e.target.files||[]);if(!files.length)return
+  setUploading(true);setError('')
+  try{const data=await uploadAdminDigitalFiles(productId,files);setConfig(c=>({...c,files:[...(data.files||[]),...(c?.files||[])] }));if(onSaved)onSaved()}
+  catch(err){setError(err.message||'Upload failed.')}
+  finally{setUploading(false);e.target.value=''}
+ }
+ const removeFile=async fileId=>{setError('');try{await deleteAdminDigitalFile(productId,fileId);setConfig(c=>({...c,files:(c?.files||[]).filter(f=>f.id!==fileId)}));if(onSaved)onSaved()}catch(e){setError(e.message||'Could not delete the file.')}}
+ const allowedExts=(config?.allowed_extensions||[]).map(e=>'.'+e).join(', ')
+ return <div className="workspace-detail"><div className="panel-head"><div><p className="admin-kicker">DIGITAL PRODUCT</p><h3>{productName||productId}</h3><small>Sell downloadable files instead of printed parts.</small></div><button className="table-button" onClick={onClose}>Close</button></div>
+ {error&&<div className="workspace-error">{error}</div>}
+ {busy?<div className="workspace-empty">Loading digital settings…</div>:<>
+ <div className="subsection"><h3>Product type</h3><div className="button-row"><button className={productType==='physical'?'admin-primary':'admin-ghost'} onClick={()=>setProductType('physical')}>Physical</button><button className={productType==='digital'?'admin-primary':'admin-ghost'} onClick={()=>setProductType('digital')}>Digital download</button></div>
+ {productType==='digital'&&<div className="button-row"><span className="workspace-hint">Design type:</span>{DIGITAL_DESIGN_TYPES.map(([value,label])=><button key={value} className={designType===value?'admin-primary':'admin-ghost'} onClick={()=>setDesignType(value)}>{label}</button>)}</div>}
+ {productType==='digital'&&<small className="workspace-hint">Allowed file extensions for {designType}: {allowedExts||'—'} (change in Settings → Digital products).</small>}</div>
+ {productType==='digital'&&<div className="subsection"><h3>License options</h3><Table rows={licenses} columns={[{key:'license_key',label:'Key',render:(l,i)=><input className="price-input" value={l.license_key} onChange={e=>updateLicense(i,{license_key:e.target.value})} placeholder="personal"/>},{key:'label',label:'Label',render:(l,i)=><input className="price-input" value={l.label} onChange={e=>updateLicense(i,{label:e.target.value})} placeholder="Personal use"/>},{key:'price',label:'Price (USD)',render:(l,i)=><input className="price-input" type="number" min="0" step="0.01" value={l.price} onChange={e=>updateLicense(i,{price:e.target.value})}/>},{key:'active',label:'Active',render:(l,i)=><input type="checkbox" checked={l.active!==false} onChange={e=>updateLicense(i,{active:e.target.checked})}/>},{key:'remove',label:'',render:(l,i)=><button className="table-button" onClick={()=>removeLicense(i)} aria-label="Remove license"><X size={14}/></button>}]} empty="No license options — add at least one to sell this product."/><div className="button-row"><button className="admin-ghost" onClick={addLicense}><Plus size={14}/> Add license</button></div></div>}
+ {productType==='digital'&&<div className="subsection"><h3>Download files</h3>{(config?.files||[]).length?<Table rows={config.files} columns={[{key:'original_name',label:'File',render:f=><div><strong>{f.original_name}</strong><small>{f.size_bytes?Math.round(Number(f.size_bytes)/1024)+' KB':''}</small></div>},{key:'created_at',label:'Uploaded',render:f=>date(f.created_at)},{key:'remove',label:'',render:f=><button className="table-button" onClick={()=>removeFile(f.id)}><X size={14}/> Remove</button>}]} empty="No files yet."/>:<div className="workspace-empty">No files yet — upload the files customers will download.</div>}<div className="button-row"><label className="admin-ghost" style={{cursor:'pointer'}}><Upload size={14}/> {uploading?'Uploading…':'Upload files'}<input type="file" multiple style={{display:'none'}} onChange={upload} disabled={uploading}/></label></div></div>}
+ <div className="button-row price-actions"><button className="admin-primary" disabled={saving} onClick={save}><Save size={14}/> {saving?'Saving…':'Save digital settings'}</button><small className="workspace-hint">Publishing still goes through the Publish button — a digital product needs files and a priced license to be publishable.</small></div>
+ </>}
+ </div>
 }
 
 function Customers(){
